@@ -1,40 +1,60 @@
-# Proyecto_Dev_Challenge
-# CineTruth: Verificador de Rumores de Farándula
+# Cine Truth
 
-## Contexto del Proyecto
-CineTruth es una herramienta de alfabetización mediática centrada en la farándula cinematográfica. Su objetivo es combatir la desinformación digital permitiendo que los usuarios verifiquen titulares o capturas de pantalla de rumores sobre actores de cine. El sistema no solo determina si una noticia es falsa, sino que educa al usuario sobre cómo identificar patrones de engaño.
+MVP para el Dev Challenge de PUCE TEC. Verifica imágenes y textos/titulares
+de farándula que podrían estar fabricados o alterados con IA, usando Gemini.
 
-## Alcance y Objetivos
-- **Enfoque:** Rumores de farándula y cine.
-- **Funcionalidad principal:** Análisis de veracidad mediante la Google Fact Check Tools API.
-- **Educación:** Proporcionar explicaciones detalladas y recomendaciones personalizadas para identificar noticias falsas.
-- **Entradas permitidas:** Texto plano, imágenes (capturas de pantalla) y, próximamente, documentos (.txt, .docx).
-- **Plazo:** Proyecto de desarrollo rápido (7 días).
+Estructura:
 
-## Stack Tecnológico
-- **Lenguaje:** Python.
-- **Framework Web:** Streamlit (para interfaz rápida y reactiva).
-- **IA/Procesamiento:** Google Gemini (generación de explicaciones y recomendaciones).
-- **OCR:** Pytesseract (extracción de texto de imágenes).
-- **Base de Datos:** Supabase (PostgreSQL para historial de consultas y logs).
-- **Gestión:** Scrum (equipo de 3 personas).
+```
+CineTruth/
+  cinetruth-backend/    -> API en Express (Node.js) + Gemini AI
+  cinetruth-frontend/   -> Interfaz en React + Vite + Tailwind
+```
 
-## Estructura de Base de Datos (Supabase)
-1. **`verified_claims`**: Almacena el `original_text`, `verdict_explanation`, `literacy_recommendations`, `fact_check_source`, `source_url` y `created_at`.
-2. **`admin_logs`**: Almacena logs de errores (`error_message`, `input_snippet`, `created_at`).
+## 1. Backend
 
-## Lógica de Procesamiento
-1. **Ingesta:** El usuario carga un texto o archivo mediante la interfaz.
-2. **Normalización:** Si es imagen, se aplica OCR; si es documento, se extrae el texto.
-3. **Validación:** Se consulta la API de Fact Check.
-4. **Análisis:** El texto + resultado de la API se envían a Gemini con un *System Prompt* definido para generar el veredicto y consejos educativos.
-5. **Persistencia:** Se guarda el resultado en Supabase para futuras consultas.
+Abre una terminal en `cinetruth-backend`:
 
-## Estructura de Administración
-- Interfaz para visualizar, editar o eliminar registros de noticias falsas.
-- Capacidad de ajustar las recomendaciones de seguridad según la categoría de la noticia.
+```
+cd cinetruth-backend
+npm install
+npm run dev
+```
 
-## Instrucciones para la IA colaboradora
-- Siempre mantener un tono educativo, imparcial y profesional.
-- Basar toda explicación de veracidad en la evidencia de la API de Fact Check.
-- Seguir la estructura de respuesta: "Análisis del Veredicto" y "Recomendaciones de Alfabetización".
+Debe salir en consola: `Cine Truth backend corriendo en http://localhost:5006`
+
+## 2. Frontend
+
+Abre OTRA terminal (deja la del backend corriendo) en `cinetruth-frontend`:
+
+```
+cd cinetruth-frontend
+npm install
+npm run dev
+```
+
+Te va a dar un link, normalmente `http://localhost:5173`. Ábrelo en el
+navegador y ya deberías ver la página funcionando, conectada al backend.
+
+## 3. Probar que funciona
+
+- Pestaña "Texto / Titular": pega un titular de farándula cualquiera y dale
+  "Analizar ahora".
+- Pestaña "Imagen": sube una foto (JPEG o PNG, máx. 5MB) y dale "Analizar
+  ahora".
+
+Si ves un error de conexión, revisa que el backend siga corriendo en el
+puerto 5006 y que la clave de Gemini esté bien puesta en el `.env`.
+
+## Notas técnicas
+
+- El backend no usa base de datos: todo el análisis pasa por Gemini en cada
+  petición, así el proyecto corre sin instalar Postgres.
+- El endpoint `/api/analyze/text` recibe `{ text }` y el endpoint
+  `/api/analyze/image` recibe un `multipart/form-data` con el campo `image`.
+- Ambos devuelven la misma forma de respuesta: `verdict`, `suspicionScore`,
+  `semaphore`, `flags` y `summary`.
+
+## Rediseño Pop-Art / Neo-Brutalista
+
+El frontend fue renovado con una estética de revista de chismes, microinteracciones, copy satírico y un Chismómetro Explosivo. Para ejecutar el backend, copia `cinetruth-backend/.env.example` como `.env` y configura una clave nueva de Gemini.
