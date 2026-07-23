@@ -18,7 +18,7 @@ const getGeminiClient = () => {
   return geminiClient;
 };
 
-const MODEL = () => process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL = () => process.env.GEMINI_MODEL || "gemini-3.5-flash";
 
 /**
  * Extrae el primer objeto JSON valido de un texto, por si el modelo
