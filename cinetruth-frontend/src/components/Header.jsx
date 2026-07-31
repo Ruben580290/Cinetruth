@@ -1,3 +1,6 @@
+import { Link } from "react-router-dom";
+import routePaths from "../routes/route.paths";
+
 const Header = () => (
   <header className="sticky top-0 z-50 border-b-4 border-ink bg-paper/95 backdrop-blur-sm">
     <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-8">
@@ -13,6 +16,7 @@ const Header = () => (
         <a href="#analizar" className="">Destapar chisme</a>
         <a href="#como-funciona" className="">La receta</a>
         <a href="#equipo" className="">La redacción</a>
+        <Link to={routePaths.login} className="">🔐 Iniciar sesión</Link>
       </nav>
 
       <a href="#analizar" className="irregular border-3 border-ink bg-lime px-3 py-2 font-mono text-[10px] font-bold uppercase shadow-brutal-sm">

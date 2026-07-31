@@ -1,4 +1,4 @@
-const multer = require("multer");
+import multer from "multer";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB, segun el alcance del proyecto
 
@@ -19,4 +19,4 @@ const upload = multer({
   fileFilter,
 });
 
-module.exports = upload;
+export default upload;

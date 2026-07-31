@@ -1,10 +1,10 @@
-const { GoogleGenAI } = require("@google/genai");
-const {
+import { GoogleGenAI } from "@google/genai";
+import {
   TEXT_SYSTEM_INSTRUCTIONS,
   IMAGE_SYSTEM_INSTRUCTIONS,
   SIMILAR_CASES_SYSTEM_INSTRUCTIONS,
   RESPONSE_SCHEMA,
-} = require("../config/aiPromptConfig");
+} from "../config/aiPromptConfig.js";
 
 let geminiClient = null;
 
@@ -197,4 +197,4 @@ const analyzeImage = async (req, res) => {
   }
 };
 
-module.exports = { analyzeText, analyzeImage };
+export { analyzeText, analyzeImage };

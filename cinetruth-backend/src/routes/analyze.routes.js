@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const analyzeRouter = express.Router();
 
-const { analyzeText, analyzeImage } = require("../controllers/analyze.controller");
-const upload = require("../middleware/upload.middleware");
+import { analyzeText, analyzeImage } from "../controllers/analyze.controller.js";
+import upload from "../middleware/upload.middleware.js";
 
 // POST /api/analyze/text
 analyzeRouter.post("/text", analyzeText);
@@ -10,4 +10,4 @@ analyzeRouter.post("/text", analyzeText);
 // POST /api/analyze/image
 analyzeRouter.post("/image", upload.single("image"), analyzeImage);
 
-module.exports = analyzeRouter;
+export default analyzeRouter;
