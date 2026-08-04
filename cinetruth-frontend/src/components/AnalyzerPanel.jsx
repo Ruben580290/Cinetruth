@@ -48,7 +48,7 @@ const AnalyzerPanel = () => {
           <p className="mx-auto mt-5 max-w-2xl text-lg font-bold text-white">Prometemos ser discretos. Mentira. Lo vamos a revisar hasta que confiese.</p>
         </div>
 
-        <div className="mt-10 border-4 border-ink bg-cream p-4 shadow-brutal-cyan irregular md:p-8">
+        <div className="mt-10 border-4 border-ink bg-cream p-4 shadow-brutal-yellow irregular md:p-8">
           <div className="grid gap-3 sm:grid-cols-2">
             {TABS.map((tab) => (
               <button key={tab.id} type="button" onClick={() => switchMode(tab.id)} className={`border-4 border-ink px-4 py-4 font-comic text-xl shadow-brutal-sm md:text-2xl ${mode === tab.id ? "bg-cyan -rotate-1" : "bg-paper"}`}>

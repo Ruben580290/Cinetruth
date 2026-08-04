@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-import AppDataSource from "../config/data-source.js";
-import UserSchema from "../models/User.js";
+import AppDataSource from "../config/database.js";
+import UserSchema from "../models/UserSchema.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
 

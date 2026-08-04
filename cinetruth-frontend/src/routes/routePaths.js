@@ -1,9 +1,8 @@
 const routePaths = {
   home: "/",
   login: "/login",
-  dashboard: "/dashboard",
+  register: "/register",
   profile: "/profile",
-  usersNew: "/users/new",
 };
 
 export default routePaths;

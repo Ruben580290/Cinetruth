@@ -2,10 +2,10 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 
-import analyzeRouter from "./routes/analyze.routes.js";
-import logger from "./middleware/logger.middleware.js";
-import authRouter from "./routes/auth.routes.js";
-import AppDataSource from "./config/data-source.js";
+import analyzeRouter from "./routes/analyzeRoutes.js";
+import logger from "./middleware/loggerMiddleware.js";
+import authRouter from "./routes/authRoutes.js";
+import AppDataSource from "./config/database.js";
 
 const app = express();
 
@@ -33,11 +33,13 @@ app.use((error, req, res, next) => {
 
 AppDataSource.initialize()
   .then(() => {
-    console.log("Conexion a la base de datos (TypeORM) establecida.");
+    console.log("Base de datos conectada");
   })
   .catch((error) => {
     console.error("No se pudo conectar a la base de datos:", error.message);
-    console.error("El servidor sigue arrancando: /api/analyze funciona igual, /api/auth respondera error hasta que la base de datos este disponible.");
+    console.error(
+      "El servidor sigue arrancando: /api/analyze funciona igual, /api/auth respondera error hasta que la base de datos este disponible.",
+    );
   })
   .finally(() => {
     app.listen(PORT, () => {

@@ -1,8 +1,8 @@
 import express from "express";
 const analyzeRouter = express.Router();
 
-import { analyzeText, analyzeImage } from "../controllers/analyze.controller.js";
-import upload from "../middleware/upload.middleware.js";
+import { analyzeText, analyzeImage } from "../controllers/analyzeController.js";
+import upload from "../middleware/uploadMiddleware.js";
 
 // POST /api/analyze/text
 analyzeRouter.post("/text", analyzeText);

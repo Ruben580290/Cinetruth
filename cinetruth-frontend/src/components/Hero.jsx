@@ -11,7 +11,7 @@ const Hero = () => (
         </div>
         <h1 className="max-w-4xl font-display text-[clamp(3.2rem,8vw,7.6rem)] leading-[.84] tracking-[-.055em]">
           ¿NOTICIA
-          <span className="block text-hotpink text-stroke-white">O PURO</span>
+          <span className="block text-violet text-stroke-white">O PURO</span>
           <span className="block -rotate-1 text-cyan text-stroke-white">CUENTO?</span>
         </h1>
         <p className="mt-8 max-w-2xl border-l-8 border-ink pl-5 text-lg font-semibold leading-relaxed md:text-xl">
