@@ -1,15 +1,19 @@
-const express = require("express");
-const cors = require("cors");
-require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import "dotenv/config";
 
-const analyzeRouter = require("./routes/analyze.routes");
-const logger = require("./middleware/logger.middleware");
+import analyzeRouter from "./routes/analyzeRoutes.js";
+import logger from "./middleware/loggerMiddleware.js";
+import authRouter from "./routes/authRoutes.js";
+import AppDataSource from "./config/database.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(logger);
+
+app.use("/api/auth", authRouter);
 
 const PORT = process.env.PORT || 5006;
 
@@ -27,6 +31,18 @@ app.use((error, req, res, next) => {
   next();
 });
 
-app.listen(PORT, () => {
-  console.log(`Cine Truth backend corriendo en http://localhost:${PORT}`);
-});
+AppDataSource.initialize()
+  .then(() => {
+    console.log("Base de datos conectada");
+  })
+  .catch((error) => {
+    console.error("No se pudo conectar a la base de datos:", error.message);
+    console.error(
+      "El servidor sigue arrancando: /api/analyze funciona igual, /api/auth respondera error hasta que la base de datos este disponible.",
+    );
+  })
+  .finally(() => {
+    app.listen(PORT, () => {
+      console.log(`Cine Truth backend corriendo en http://localhost:${PORT}`);
+    });
+  });
