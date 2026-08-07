@@ -1,22 +1,22 @@
 # Cine Truth
 
-MVP para el Dev Challenge de PUCE TEC. Verifica imágenes y textos/titulares
-de farándula que podrían estar fabricados o alterados con IA, usando Gemini.
+Verificador de imágenes y textos/titulares de farándula que podrían 
+estar fabricados o alterados con IA, usando una API de Gemini.
 
 Estructura:
 
 ```
-CineTruth/
-  cinetruth-backend/    -> API en Express (Node.js) + Gemini AI
-  cinetruth-frontend/   -> Interfaz en React + Vite + Tailwind
+Cinetruth/
+  backend/    -> API en Express (Node.js) + Gemini AI
+  frontend/   -> Interfaz en React + Vite + Tailwind
 ```
 
 ## 1. Backend
 
-Abre una terminal en `cinetruth-backend`:
+Abre una terminal en `backend`:
 
 ```
-cd cinetruth-backend
+cd backend
 npm install
 npm run dev
 ```
@@ -25,10 +25,10 @@ Debe salir en consola: `Cine Truth backend corriendo en http://localhost:5006`
 
 ## 2. Frontend
 
-Abre OTRA terminal (deja la del backend corriendo) en `cinetruth-frontend`:
+Abre OTRA terminal (deja la del backend corriendo) en `frontend`:
 
 ```
-cd cinetruth-frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -55,6 +55,6 @@ puerto 5006 y que la clave de Gemini esté bien puesta en el `.env`.
 - Ambos devuelven la misma forma de respuesta: `verdict`, `suspicionScore`,
   `semaphore`, `flags` y `summary`.
 
-## Rediseño Pop-Art / Neo-Brutalista
+## Diseño Pop-Art / Neo-Brutalista
 
-El frontend fue renovado con una estética de revista de chismes, microinteracciones, copy satírico y un Chismómetro Explosivo. Para ejecutar el backend, copia `cinetruth-backend/.env.example` como `.env` y configura una clave nueva de Gemini.
+El frontend fue renovado con una estética de revista de chismes, microinteracciones, copy satírico y un Chismómetro Explosivo. Para ejecutar el backend, configura el `.env` y configura una clave nueva de Gemini.
