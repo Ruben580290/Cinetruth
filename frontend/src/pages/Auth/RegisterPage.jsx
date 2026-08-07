@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
 import routePaths from "../../routes/routePaths";
+import Button from "../../components/common/Button";
 
 const API_BASE_URL = "http://localhost:5006/api";
 
@@ -176,12 +177,16 @@ const RegisterPage = () => {
           </p>
         )}
 
-        <button
+        <Button
+          type="submit"
+          variant="accent"
+          size="md"
+          fullWidth
           disabled={isLoading}
-          className="mt-6 w-full border-3 border-ink bg-electric px-4 py-3 font-mono text-xs font-bold uppercase shadow-brutal-sm disabled:opacity-50"
+          className="mt-6"
         >
           {isLoading ? "Creando cuenta..." : "Crear cuenta"}
-        </button>
+        </Button>
 
         <p className="mt-4 text-center font-mono text-xs font-bold uppercase">
           ¿Ya tienes cuenta?{" "}
@@ -190,13 +195,15 @@ const RegisterPage = () => {
           </Link>
         </p>
 
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="md"
+          fullWidth
           onClick={handleContinue}
-          className="mt-8 w-full border-3 border-ink bg-cyan px-4 py-3 font-mono text-xs font-bold uppercase text-black shadow-brutal-sm"
+          className="mt-8"
         >
           Volver
-        </button>
+        </Button>
       </form>
     </div>
   );

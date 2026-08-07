@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
 import routePaths from "../../routes/routePaths";
+import Button from "../../components/common/Button";
 
 const API_BASE_URL = "http://localhost:5006/api";
 
@@ -56,12 +57,15 @@ const ProfilePage = () => {
             <p role="alert" className="mt-6 text-center font-semibold">
               😵 {error}
             </p>
-            <Link
+            <Button
+              as={Link}
               to={routePaths.login}
-              className="mt-6 block border-3 border-ink bg-lime px-4 py-3 text-center font-mono text-xs font-bold uppercase shadow-brutal-sm"
+              variant="success"
+              size="md"
+              className="mt-6 block text-center"
             >
               Volver a iniciar sesión
-            </Link>
+            </Button>
           </>
         )}
 
@@ -80,20 +84,24 @@ const ProfilePage = () => {
               {user.email}
             </p>
 
-            <button
-              type="button"
+            <Button
+              variant="danger"
+              size="md"
+              fullWidth
               onClick={handleLogout}
-              className="mt-8 w-full border-3 border-ink bg-hotpink px-4 py-3 font-mono text-xs font-bold uppercase text-white shadow-brutal-sm"
+              className="mt-8"
             >
               Cerrar sesión
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              fullWidth
               onClick={handleContinue}
-              className="mt-8 w-full border-3 border-ink bg-cyan px-4 py-3 font-mono text-xs font-bold uppercase text-black shadow-brutal-sm"
+              className="mt-8"
             >
               Continuar
-            </button>
+            </Button>
           </>
         )}
       </div>
