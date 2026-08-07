@@ -4,7 +4,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5006";
  * Envia texto/titular al backend para analisis de veracidad.
  * @param {string} text
  */
-export async function analyzeText(text) {
+export const analyzeText = async (text) => {
   const response = await fetch(`${API_URL}/api/analyze/text`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -14,17 +14,19 @@ export async function analyzeText(text) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.details || data.error || "No se pudo analizar el texto.");
+    throw new Error(
+      data.details || data.error || "No se pudo analizar el texto.",
+    );
   }
 
   return data;
-}
+};
 
 /**
  * Envia una imagen al backend para analisis forense visual.
  * @param {File} file
  */
-export async function analyzeImage(file) {
+export const analyzeImage = async (file) => {
   const formData = new FormData();
   formData.append("image", file);
 
@@ -36,8 +38,10 @@ export async function analyzeImage(file) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.details || data.error || "No se pudo analizar la imagen.");
+    throw new Error(
+      data.details || data.error || "No se pudo analizar la imagen.",
+    );
   }
 
   return data;
-}
+};
