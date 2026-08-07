@@ -4,7 +4,7 @@ import AnalyzerPanel from "./components/AnalyzerPanel";
 import HowItWorks from "./components/HowItWorks";
 import Footer from "./components/Footer";
 
-function App() {
+const App = () => {
   return (
     <div className="min-h-screen bg-cream text-ink paper-noise">
       <Header />
@@ -16,6 +16,6 @@ function App() {
       <Footer />
     </div>
   );
-}
+};
 
 export default App;
