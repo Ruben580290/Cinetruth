@@ -2,7 +2,7 @@
 
 ## Fecha
 
-2026-07-22
+07-08-2026
 
 ## Participantes
 
