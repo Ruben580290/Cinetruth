@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+
 import UploadZone from "./UploadZone";
 import ResultCard from "./ResultCard";
 import SimilarCasesCard from "./SimilarCasesCard";
 import { analyzeImage, analyzeText } from "../api/analyzeApi";
-import Button from "./common/Button";
+import { Alert, Badge, Button, Card, FIELD, Section } from "../ui";
 
 const TABS = [
   { id: "image", label: "📸 FOTO SOSPECHOSA" },
@@ -31,6 +32,7 @@ const AnalyzerPanel = () => {
     setError("");
     setResult(null);
   };
+
   const handleFileSelected = (selected) => {
     setError("");
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -42,12 +44,14 @@ const AnalyzerPanel = () => {
     event.preventDefault();
     setError("");
     setResult(null);
+
     if (mode === "image" && !file)
       return setError("Primero dame la foto del delito, Sherlock.");
     if (mode === "text" && !text.trim())
       return setError(
         "El chisme invisible todavía no lo analizamos. Pega un titular.",
       );
+
     setIsLoading(true);
     try {
       setResult(
@@ -63,104 +67,128 @@ const AnalyzerPanel = () => {
   };
 
   return (
-    <section
+    <Section
       id="analizar"
-      className="relative border-b-4 border-ink bg-hotpink py-20"
+      tone="hotpink"
+      texture="grid"
+      textureOpacity={10}
+      width="medium"
+      className="py-20"
     >
-      <div className="absolute inset-0 comic-grid opacity-10" />
-      <div className="relative mx-auto max-w-6xl px-5 md:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-block -rotate-2 border-3 border-ink bg-electric px-4 py-2 font-mono text-xs font-bold uppercase shadow-brutal-sm">
-            Laboratorio oficial del “ajá, ¿y la fuente?”
-          </span>
-          <h2 className="mt-6 font-display text-4xl leading-none text-white text-stroke-white md:text-6xl">
-            PONGAMOS EL CHISME EN LA PARRILLA
-          </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-lg font-bold text-white">
-            Prometemos ser discretos. Mentira. Lo vamos a revisar hasta que
-            confiese.
-          </p>
+      <div className="mx-auto max-w-3xl text-center">
+        <Badge tone="electric" size="md" className="-rotate-2">
+          Laboratorio oficial del “ajá, ¿y la fuente?”
+        </Badge>
+        <h2 className="mt-6 font-display text-4xl leading-none text-white text-stroke-white md:text-6xl">
+          PONGAMOS EL CHISME EN LA PARRILLA
+        </h2>
+        <p className="mx-auto mt-5 max-w-2xl text-lg font-bold text-white">
+          Prometemos ser discretos. Mentira. Lo vamos a revisar hasta que
+          confiese.
+        </p>
+      </div>
+
+      <Card
+        tone="cream"
+        shadow="yellow"
+        shape="irregular"
+        padding="none"
+        className="mt-10 p-4 md:p-8"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          {TABS.map((tab) => (
+            <Button
+              key={tab.id}
+              size="lg"
+              variant={mode === tab.id ? "secondary" : "neutral"}
+              className={mode === tab.id ? "-rotate-1" : ""}
+              onClick={() => switchMode(tab.id)}
+            >
+              {tab.label}
+            </Button>
+          ))}
         </div>
 
-        <div className="mt-10 border-4 border-ink bg-cream p-4 shadow-brutal-yellow irregular md:p-8">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {TABS.map((tab) => (
-              <Button
-                key={tab.id}
-                size="lg"
-                variant={mode === tab.id ? "secondary" : "neutral"}
-                className={mode === tab.id ? "-rotate-1" : ""}
-                onClick={() => switchMode(tab.id)}
+        <form onSubmit={handleSubmit} className="mt-7">
+          {mode === "image" ? (
+            <UploadZone
+              file={file}
+              previewUrl={previewUrl}
+              onFileSelected={handleFileSelected}
+              onError={setError}
+            />
+          ) : (
+            <div className="relative">
+              <Badge
+                tone="lime"
+                size="comic"
+                shadow="none"
+                className="absolute -right-2 -top-4 z-10 rotate-3"
               >
-                {tab.label}
-              </Button>
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-7">
-            {mode === "image" ? (
-              <UploadZone
-                file={file}
-                previewUrl={previewUrl}
-                onFileSelected={handleFileSelected}
-                onError={setError}
+                SUELTA EL BOMBAZO
+              </Badge>
+              <textarea
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                maxLength={5000}
+                placeholder={
+                  "Ejemplo: “Cantante desaparece después de revelar el secreto que paralizó internet…”"
+                }
+                rows={9}
+                className={FIELD.textarea}
               />
-            ) : (
-              <div className="relative">
-                <span className="absolute -right-2 -top-4 z-10 rotate-3 border-3 border-ink bg-lime px-3 py-1 font-comic text-xl">
-                  SUELTA EL BOMBAZO
-                </span>
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  maxLength={5000}
-                  placeholder={
-                    "Ejemplo: “Cantante desaparece después de revelar el secreto que paralizó internet…”"
-                  }
-                  rows={9}
-                  className="irregular w-full resize-none border-4 border-ink bg-paper p-6 text-lg font-semibold shadow-brutal outline-none placeholder:text-muted/70"
-                />
-                <p className="mt-2 text-right font-mono text-xs font-bold">
-                  {text.length}/5000 caracteres de drama
-                </p>
-              </div>
-            )}
-
-            {error && (
-              <p className="mt-5 border-4 border-ink bg-danger px-5 py-4 font-bold text-white shadow-brutal-sm">
-                🚫 {error}
-              </p>
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="xl"
-              disabled={isLoading}
-              className="mt-7 w-full sm:w-auto"
-            >
-              {isLoading ? "🌀 SACUDIENDO EL CHISME…" : "💥 ¡QUE CONFIESE!"}
-            </Button>
-          </form>
-
-          {isLoading && (
-            <div className="relative mt-7 overflow-hidden border-4 border-ink bg-paper p-6 text-center shadow-brutal-sm">
-              <div className="scan-beam absolute left-0 top-0 h-10 w-full bg-cyan/70" />
-              <p className="relative font-comic text-2xl">
-                Revisando dedos, fondos, fechas y excusas… 👀
+              <p className="mt-2 text-right font-mono text-xs font-bold">
+                {text.length}/5000 caracteres de drama
               </p>
             </div>
           )}
-        </div>
 
-        {result && (
-          <div className="mt-12">
-            <ResultCard result={result} />
-            <SimilarCasesCard cases={result.similarCases} />
-          </div>
+          {error && (
+            <Alert
+              tone="danger"
+              size="md"
+              border="thick"
+              shadow="sm"
+              className="mt-5"
+            >
+              {error}
+            </Alert>
+          )}
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="xl"
+            disabled={isLoading}
+            className="mt-7 w-full sm:w-auto"
+          >
+            {isLoading ? "🌀 SACUDIENDO EL CHISME…" : "💥 ¡QUE CONFIESE!"}
+          </Button>
+        </form>
+
+        {isLoading && (
+          <Card
+            tone="paper"
+            shadow="sm"
+            padding="lg"
+            className="relative mt-7 overflow-hidden text-center"
+          >
+            <div className="scan-beam absolute left-0 top-0 h-10 w-full bg-cyan/70" />
+            <p className="relative font-comic text-2xl">
+              Revisando dedos, fondos, fechas y excusas… 👀
+            </p>
+          </Card>
         )}
-      </div>
-    </section>
+      </Card>
+
+      {result && (
+        <div className="mt-12">
+          <ResultCard result={result} />
+          <SimilarCasesCard cases={result.similarCases} />
+        </div>
+      )}
+    </Section>
   );
 };
+
 export default AnalyzerPanel;

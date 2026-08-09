@@ -1,11 +1,10 @@
+import cx from "../styles/cx";
 import {
   BUTTON_BASE,
   BUTTON_SHAPES,
   BUTTON_SIZES,
   BUTTON_VARIANTS,
 } from "./buttonVariants";
-
-const cx = (...classes) => classes.filter(Boolean).join(" ");
 
 const Button = ({
   as: Component = "button",
@@ -21,7 +20,7 @@ const Button = ({
   const classes = cx(
     BUTTON_BASE,
     BUTTON_VARIANTS[variant] || BUTTON_VARIANTS.primary,
-    BUTTON_SIZES[size] || BUTTON_SIZES.md,
+    BUTTON_SIZES[size] ?? BUTTON_SIZES.md,
     BUTTON_SHAPES[shape],
     fullWidth && "w-full",
     className,
