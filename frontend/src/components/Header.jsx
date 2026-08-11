@@ -1,7 +1,14 @@
 import { Link, useNavigate } from "react-router-dom";
+
 import routePaths from "../routes/routePaths";
 import { useAuth } from "../auth/AuthContext";
-import Button from "./common/Button";
+import { Button, Container, Starburst, TEXT } from "../ui";
+
+const NAV_LINKS = [
+  { href: "#analizar", label: "Destapar chisme" },
+  { href: "#como-funciona", label: "La receta" },
+  { href: "#equipo", label: "La redacción" },
+];
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
@@ -14,11 +21,11 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 border-b-4 border-ink bg-paper/95 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-8">
+      <Container className="flex items-center justify-between gap-4 py-3">
         <a href="#top" className="group flex items-center gap-3">
-          <span className="starburst flex h-12 w-12 items-center justify-center bg-electric text-xl">
+          <Starburst tone="electric" size="sm">
             💥
-          </span>
+          </Starburst>
           <div>
             <span className="block font-display text-lg leading-none md:text-2xl">
               CINE<span className="text-hotpink">TRUTH</span>
@@ -29,20 +36,16 @@ const Header = () => {
           </div>
         </a>
 
-        <nav className="hidden items-center gap-7 font-mono text-xs font-bold uppercase lg:flex">
-          <a href="#analizar" className="">
-            Destapar chisme
-          </a>
-          <a href="#como-funciona" className="">
-            La receta
-          </a>
-          <a href="#equipo" className="">
-            La redacción
-          </a>
+        <nav className={`hidden items-center gap-7 ${TEXT.label} lg:flex`}>
+          {NAV_LINKS.map((link) => (
+            <a key={link.href} href={link.href}>
+              {link.label}
+            </a>
+          ))}
 
           {isAuthenticated ? (
             <>
-              <Link to={routePaths.profile} className="">
+              <Link to={routePaths.profile}>
                 👋 Hola, {user?.name?.split(" ")[0] || "reportero"}
               </Link>
               <Button variant="ghost" size="none" onClick={handleLogout}>
@@ -51,12 +54,8 @@ const Header = () => {
             </>
           ) : (
             <>
-              <Link to={routePaths.login} className="">
-                Iniciar sesión
-              </Link>
-              <Link to={routePaths.register} className="">
-                Crear cuenta
-              </Link>
+              <Link to={routePaths.login}>Iniciar sesión</Link>
+              <Link to={routePaths.register}>Crear cuenta</Link>
             </>
           )}
         </nav>
@@ -70,8 +69,9 @@ const Header = () => {
         >
           🕵️ Chismógrafo listo
         </Button>
-      </div>
+      </Container>
     </header>
   );
 };
+
 export default Header;

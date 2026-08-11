@@ -3,3 +3,5 @@ dist
 .env
 !.env.example
 npm-debug.log
+database/backups/
+database/run_backup_task.sh
