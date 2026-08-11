@@ -5,6 +5,8 @@ import {
   SIMILAR_CASES_SYSTEM_INSTRUCTIONS,
   RESPONSE_SCHEMA,
 } from "../config/aiPromptConfig.js";
+import AppDataSource from "../config/database.js";
+import AnalysisSchema from "../models/AnalysisSchema.js";
 
 let geminiClient = null;
 
@@ -70,7 +72,9 @@ const findSimilarCases = async (caseBasis) => {
     .slice(0, 4)
     .map((item) => ({
       title: String(item.title).trim(),
-      sourceName: item.sourceName ? String(item.sourceName).trim() : "Fuente web",
+      sourceName: item.sourceName
+        ? String(item.sourceName).trim()
+        : "Fuente web",
       sourceUrl: String(item.sourceUrl).trim(),
       likelyFake: ["SI", "PROBABLE", "INCIERTO"].includes(item.likelyFake)
         ? item.likelyFake
@@ -79,6 +83,29 @@ const findSimilarCases = async (caseBasis) => {
     }));
 
   return { cases, groundedSources };
+};
+
+/**
+ * Guarda el analisis en el historial, asociado al usuario autenticado.
+ * Si no hay usuario (peticion sin token), no guarda nada y no interrumpe
+ * la respuesta del analisis.
+ */
+const saveAnalysis = async (userId, type, result) => {
+  if (!userId) return;
+  try {
+    const analysisRepository = AppDataSource.getRepository(AnalysisSchema);
+    const analysis = analysisRepository.create({
+      type,
+      verdict: result.verdict,
+      suspicionScore: result.suspicionScore,
+      summary: result.summary,
+      resultData: result,
+      user: { id: userId },
+    });
+    await analysisRepository.save(analysis);
+  } catch (saveError) {
+    console.error("Error al guardar el analisis en el historial:", saveError);
+  }
 };
 
 /**
@@ -118,7 +145,15 @@ const analyzeText = async (req, res) => {
       console.error("Error al buscar casos similares (texto):", similarError);
     }
 
-    return res.json({ type: "text", input: text.trim(), ...result, similarCases });
+    const fullResult = {
+      type: "text",
+      input: text.trim(),
+      ...result,
+      similarCases,
+    };
+    await saveAnalysis(req.user?.sub, "text", fullResult);
+
+    return res.json(fullResult);
   } catch (error) {
     console.error("Error al analizar texto:", error);
     return res.status(500).json({
@@ -182,12 +217,15 @@ const analyzeImage = async (req, res) => {
       console.error("Error al buscar casos similares (imagen):", similarError);
     }
 
-    return res.json({
+    const fullResult = {
       type: "image",
       fileName: req.file.originalname,
       ...result,
       similarCases,
-    });
+    };
+    await saveAnalysis(req.user?.sub, "image", fullResult);
+
+    return res.json(fullResult);
   } catch (error) {
     console.error("Error al analizar imagen:", error);
     return res.status(500).json({

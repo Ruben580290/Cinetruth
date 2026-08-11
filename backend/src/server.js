@@ -5,6 +5,7 @@ import "dotenv/config";
 import analyzeRouter from "./routes/analyzeRoutes.js";
 import logger from "./middleware/loggerMiddleware.js";
 import authRouter from "./routes/authRoutes.js";
+import historyRouter from "./routes/historyRoutes.js";
 import AppDataSource from "./config/database.js";
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(express.json());
 app.use(logger);
 
 app.use("/api/auth", authRouter);
+app.use("/api/history", historyRouter);
 
 const PORT = process.env.PORT || 5006;
 
