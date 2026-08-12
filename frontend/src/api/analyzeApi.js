@@ -1,4 +1,10 @@
 import { API_URL } from "./apiConfig";
+import { getAuthToken } from "../auth/authStorage";
+
+const buildAuthHeaders = () => {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 /**
  * Envia texto/titular al backend para analisis de veracidad.
@@ -7,7 +13,10 @@ import { API_URL } from "./apiConfig";
 export const analyzeText = async (text) => {
   const response = await fetch(`${API_URL}/api/analyze/text`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...buildAuthHeaders(),
+    },
     body: JSON.stringify({ text }),
   });
 
@@ -32,6 +41,7 @@ export const analyzeImage = async (file) => {
 
   const response = await fetch(`${API_URL}/api/analyze/image`, {
     method: "POST",
+    headers: buildAuthHeaders(),
     body: formData,
   });
 

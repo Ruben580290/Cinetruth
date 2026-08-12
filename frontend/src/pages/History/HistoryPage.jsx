@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthContext";
 import { getHistoryRequest } from "../../api/historyApi";
-import routePaths from "../../routes/routePaths";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import HistoryItem from "../../components/History/HistoryItem";
@@ -72,23 +70,13 @@ const HistoryPage = () => {
 
       <main className="py-14">
         <Container width="narrow">
-          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="font-display text-4xl leading-none md:text-5xl">
-                MI HISTORIAL
-              </h1>
-              <p className="mt-2 font-semibold text-ink/70">
-                Todo el chisme que ya destapaste antes.
-              </p>
-            </div>
-            <Button
-              as={Link}
-              to={routePaths.home}
-              variant="secondary"
-              size="sm"
-            >
-              ← Volver a analizar
-            </Button>
+          <div className="mb-8">
+            <h1 className="font-display text-4xl leading-none md:text-5xl">
+              MI HISTORIAL
+            </h1>
+            <p className="mt-2 font-semibold text-ink/70">
+              Todo el chisme que ya destapaste antes.
+            </p>
           </div>
 
           <Card

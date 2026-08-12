@@ -5,9 +5,9 @@ import { useAuth } from "../auth/AuthContext";
 import { Button, Container, Starburst, TEXT } from "../ui";
 
 const NAV_LINKS = [
-  { href: "#analizar", label: "Destapar chisme" },
-  { href: "#como-funciona", label: "La receta" },
-  { href: "#equipo", label: "La redacción" },
+  { href: "/#analizar", label: "Destapar chisme" },
+  { href: "/#como-funciona", label: "La receta" },
+  { href: "/#equipo", label: "La redacción" },
 ];
 
 const Header = () => {
@@ -63,7 +63,7 @@ const Header = () => {
 
         <Button
           as="a"
-          href="#analizar"
+          href="/#analizar"
           variant="success"
           size="sm"
           shape="irregular"
