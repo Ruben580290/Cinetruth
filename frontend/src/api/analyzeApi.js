@@ -1,4 +1,11 @@
 import { API_URL } from "./apiConfig";
+import { getToken } from "../auth/authStorage";
+
+/** Devuelve el header de autorizacion solo si hay sesion iniciada. */
+const authHeader = () => {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 /**
  * Envia texto/titular al backend para analisis de veracidad.
@@ -7,7 +14,7 @@ import { API_URL } from "./apiConfig";
 export const analyzeText = async (text) => {
   const response = await fetch(`${API_URL}/api/analyze/text`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader() },
     body: JSON.stringify({ text }),
   });
 
@@ -32,6 +39,7 @@ export const analyzeImage = async (file) => {
 
   const response = await fetch(`${API_URL}/api/analyze/image`, {
     method: "POST",
+    headers: { ...authHeader() },
     body: formData,
   });
 

@@ -5,7 +5,8 @@ const request = async (path, options = {}, fallbackMessage) => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || fallbackMessage);
+    // El backend responde 'message' en unos endpoints y 'error' en otros.
+    throw new Error(data.message || data.error || fallbackMessage);
   }
 
   return data;
