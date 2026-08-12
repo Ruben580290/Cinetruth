@@ -18,3 +18,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE cinetruth_admin IN SCHEMA public
 
 ALTER DEFAULT PRIVILEGES FOR ROLE cinetruth_admin IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO cinetruth_app;
+--------------------------------------------------------------------------------
+ALTER TABLE analysis_history OWNER TO cinetruth_admin;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON analysis_history TO cinetruth_app;
+GRANT USAGE, SELECT ON SEQUENCE analysis_history_id_seq TO cinetruth_app;

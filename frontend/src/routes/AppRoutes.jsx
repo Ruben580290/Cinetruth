@@ -5,6 +5,7 @@ import App from "../App.jsx";
 import LoginPage from "../pages/Auth/LoginPage.jsx";
 import RegisterPage from "../pages/Auth/RegisterPage.jsx";
 import ProfilePage from "../pages/Auth/ProfilePage.jsx";
+import HistoryPage from "../pages/History/HistoryPage.jsx";
 import ProtectedRoute from "./protectedRoute.jsx";
 import routePaths from "./routePaths.js";
 
@@ -18,6 +19,7 @@ const AppRoutes = () => (
 
         <Route element={<ProtectedRoute />}>
           <Route path={routePaths.profile} element={<ProfilePage />} />
+          <Route path={routePaths.history} element={<HistoryPage />} />
         </Route>
       </Routes>
     </AuthProvider>
