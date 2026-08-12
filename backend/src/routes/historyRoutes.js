@@ -1,10 +1,30 @@
 import express from "express";
 const historyRouter = express.Router();
 
-import { getHistory } from "../controllers/historyController.js";
+import {
+  getHistory,
+  getAllHistory,
+  getHistoryById,
+  updateHistoryReview,
+} from "../controllers/historyController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
+import adminMiddleware from "../middleware/adminMiddleware.js";
 
-// GET /api/history?from=&to=&verdict=
+// GET /api/history?from=&to=&verdict=&inputType=&reviewStatus=&limit=&offset=
 historyRouter.get("/", authMiddleware, getHistory);
+
+// GET /api/history/admin  (historial completo, solo admin)
+historyRouter.get("/admin", authMiddleware, adminMiddleware, getAllHistory);
+
+// GET /api/history/:id
+historyRouter.get("/:id", authMiddleware, getHistoryById);
+
+// PATCH /api/history/:id/review  (solo admin)
+historyRouter.patch(
+  "/:id/review",
+  authMiddleware,
+  adminMiddleware,
+  updateHistoryReview,
+);
 
 export default historyRouter;

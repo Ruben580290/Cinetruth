@@ -5,8 +5,7 @@ import {
   SIMILAR_CASES_SYSTEM_INSTRUCTIONS,
   RESPONSE_SCHEMA,
 } from "../config/aiPromptConfig.js";
-import AppDataSource from "../config/database.js";
-import AnalysisSchema from "../models/AnalysisSchema.js";
+import { insertAnalysisQuery } from "../repositories/analysisQueryRepository.js";
 
 let geminiClient = null;
 
@@ -21,6 +20,9 @@ const getGeminiClient = () => {
 };
 
 const MODEL = () => process.env.GEMINI_MODEL || "gemini-3.5-flash";
+
+/** Mismo limite que el textarea del frontend y que el CHECK de la base. */
+const MAX_TEXT_LENGTH = 5000;
 
 /**
  * Extrae el primer objeto JSON valido de un texto, por si el modelo
@@ -86,25 +88,35 @@ const findSimilarCases = async (caseBasis) => {
 };
 
 /**
- * Guarda el analisis en el historial, asociado al usuario autenticado.
- * Si no hay usuario (peticion sin token), no guarda nada y no interrumpe
- * la respuesta del analisis.
+ * Registra la consulta analizada en la tabla analysis_queries.
+ * Se guarda SIEMPRE, con o sin usuario autenticado (userId puede ser null).
+ * Si falla el guardado no se interrumpe la respuesta al usuario.
+ *
+ * @param {number|null} userId - id del usuario o null si es anonimo
+ * @param {string} inputType - "text" o "image"
+ * @param {object} inputInfo - datos de entrada (texto o archivo)
+ * @param {object} result - resultado completo devuelto al frontend
  */
-const saveAnalysis = async (userId, type, result) => {
-  if (!userId) return;
+const saveAnalysisQuery = async (userId, inputType, inputInfo, result) => {
   try {
-    const analysisRepository = AppDataSource.getRepository(AnalysisSchema);
-    const analysis = analysisRepository.create({
-      type,
+    await insertAnalysisQuery({
+      userId: userId || null,
+      inputType,
+      inputText: inputInfo.inputText || null,
+      fileName: inputInfo.fileName || null,
+      mimeType: inputInfo.mimeType || null,
+      fileSizeBytes: inputInfo.fileSizeBytes || null,
       verdict: result.verdict,
       suspicionScore: result.suspicionScore,
+      semaphoreColor: result.semaphore ? result.semaphore.color : null,
       summary: result.summary,
       resultData: result,
-      user: { id: userId },
     });
-    await analysisRepository.save(analysis);
   } catch (saveError) {
-    console.error("Error al guardar el analisis en el historial:", saveError);
+    console.error(
+      "Error al registrar la consulta analizada:",
+      saveError.message,
+    );
   }
 };
 
@@ -119,6 +131,12 @@ const analyzeText = async (req, res) => {
     if (typeof text !== "string" || !text.trim()) {
       return res.status(400).json({
         error: "Debes enviar el campo 'text' con contenido a analizar.",
+      });
+    }
+
+    if (text.trim().length > MAX_TEXT_LENGTH) {
+      return res.status(400).json({
+        error: `El texto no puede superar los ${MAX_TEXT_LENGTH} caracteres.`,
       });
     }
 
@@ -151,7 +169,12 @@ const analyzeText = async (req, res) => {
       ...result,
       similarCases,
     };
-    await saveAnalysis(req.user?.sub, "text", fullResult);
+    await saveAnalysisQuery(
+      req.user?.sub,
+      "text",
+      { inputText: text.trim() },
+      fullResult,
+    );
 
     return res.json(fullResult);
   } catch (error) {
@@ -185,7 +208,7 @@ const analyzeImage = async (req, res) => {
           role: "user",
           parts: [
             {
-              text: "Analiza esta imagen en busca de señales tecnicas de manipulacion o generacion por IA.",
+              text: "Analiza esta imagen en busca de senales tecnicas de manipulacion o generacion por IA.",
             },
             {
               inlineData: {
@@ -210,7 +233,7 @@ const analyzeImage = async (req, res) => {
       const flagsText = Array.isArray(result.flags)
         ? result.flags.map((f) => `${f.label}: ${f.detail}`).join("; ")
         : "";
-      const caseBasis = `Analisis de imagen de farandula.\nVeredicto: ${result.verdict}\nResumen: ${result.summary}\nSeñales detectadas: ${flagsText}`;
+      const caseBasis = `Analisis de imagen de farandula.\nVeredicto: ${result.verdict}\nResumen: ${result.summary}\nSenales detectadas: ${flagsText}`;
       const similar = await findSimilarCases(caseBasis);
       similarCases = similar.cases;
     } catch (similarError) {
@@ -223,7 +246,16 @@ const analyzeImage = async (req, res) => {
       ...result,
       similarCases,
     };
-    await saveAnalysis(req.user?.sub, "image", fullResult);
+    await saveAnalysisQuery(
+      req.user?.sub,
+      "image",
+      {
+        fileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        fileSizeBytes: req.file.size,
+      },
+      fullResult,
+    );
 
     return res.json(fullResult);
   } catch (error) {
