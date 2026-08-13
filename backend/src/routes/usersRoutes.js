@@ -1,40 +1,28 @@
-import AppDataSource from "../config/database.js";
-// Aquí importarás tu esquema de usuarios cuando programes la lógica
-// import UserSchema from "../models/UserSchema.js";
+import express from "express";
 
-// GET /api/users
-const getAll = async (req, res) => {
-  try {
-    // Aquí asumo que ya tienes tu lógica para listar usuarios
-    res.json({ message: "Listado de usuarios" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al obtener usuarios" });
-  }
-};
+import usersController from "../controllers/usersController.js";
+import authMiddleware from "../middleware/authMiddleware.js";
+import adminMiddleware from "../middleware/adminMiddleware.js";
 
-// PATCH /api/users/:id/role
-const updateRole = async (req, res) => {
-  try {
-    // TODO: Lógica para la tarea CTH-189
-    res.json({ message: "Endpoint para cambiar rol (En construcción)" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al cambiar el rol" });
-  }
-};
+const usersRouter = express.Router();
 
-// PATCH /api/users/:id/status
-const toggleStatus = async (req, res) => {
-  try {
-    // TODO: Lógica para la tarea CTH-187
-    res.json({ message: "Endpoint para desactivar cuenta (En construcción)" });
-  } catch (error) {
-    res.status(500).json({ error: "Error al cambiar el estado de la cuenta" });
-  }
-};
+// GET /api/users?search=&role=  (listado de usuarios, solo admin)
+usersRouter.get("/", authMiddleware, adminMiddleware, usersController.getAll);
 
-// Es VITAL que el export default coincida con lo que importas en tu router
-export default {
-  getAll,
-  updateRole,
-  toggleStatus,
-};
+// PATCH /api/users/:id/role  (cambiar rol, solo admin)
+usersRouter.patch(
+  "/:id/role",
+  authMiddleware,
+  adminMiddleware,
+  usersController.updateRole,
+);
+
+// PATCH /api/users/:id/status  (activar/desactivar cuenta, solo admin)
+usersRouter.patch(
+  "/:id/status",
+  authMiddleware,
+  adminMiddleware,
+  usersController.toggleStatus,
+);
+
+export default usersRouter;
