@@ -39,6 +39,12 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Credenciales incorrectas" });
     }
 
+    if (!user.isActive) {
+      return res.status(403).json({
+        message: "Esta cuenta esta desactivada. Contacta a un administrador.",
+      });
+    }
+
     const name = `${user.firstName} ${user.lastName}`.trim();
     const token = jwt.sign(
       {
@@ -60,7 +66,6 @@ const login = async (req, res) => {
         role: user.role,
       },
     });
-
   } catch (error) {
     console.error("Error al iniciar sesión:", error);
     return res.status(500).json({ message: "Error interno del servidor" });

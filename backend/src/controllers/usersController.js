@@ -88,6 +88,7 @@ const getAll = async (req, res) => {
         "user.lastName",
         "user.email",
         "user.role",
+        "user.isActive",
         "user.createdAt",
       ])
       .orderBy("user.id", "ASC");
@@ -113,9 +114,110 @@ const getAll = async (req, res) => {
   }
 };
 
+/**
+ * PATCH /api/users/:id/role
+ * body: { role: "user" | "admin" }
+ * Cambia el rol de un usuario. Solo administradores.
+ */
+const updateRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body || {};
+
+    if (!["user", "admin"].includes(role)) {
+      return res.status(400).json({
+        error: "El campo role debe ser 'user' o 'admin'",
+      });
+    }
+
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const targetUser = await userRepository.findOneBy({ id: Number(id) });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    targetUser.role = role;
+    await userRepository.save(targetUser);
+
+    return res.json({
+      message: "Rol actualizado correctamente",
+      user: {
+        id: targetUser.id,
+        firstName: targetUser.firstName,
+        lastName: targetUser.lastName,
+        email: targetUser.email,
+        role: targetUser.role,
+        isActive: targetUser.isActive,
+        createdAt: targetUser.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error al actualizar rol:", error);
+    return res.status(500).json({ error: "Error al actualizar rol" });
+  }
+};
+
+/**
+ * PATCH /api/users/:id/status
+ * body: { isActive: boolean }
+ * Activa o desactiva una cuenta. Solo administradores.
+ * Un admin no puede desactivarse a si mismo.
+ */
+const toggleStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body || {};
+
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({
+        error: "El campo isActive debe ser true o false",
+      });
+    }
+
+    if (Number(id) === req.user.sub && isActive === false) {
+      return res.status(400).json({
+        error: "No puedes desactivar tu propia cuenta",
+      });
+    }
+
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const targetUser = await userRepository.findOneBy({ id: Number(id) });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    targetUser.isActive = isActive;
+    await userRepository.save(targetUser);
+
+    return res.json({
+      message: isActive
+        ? "Cuenta activada correctamente"
+        : "Cuenta desactivada correctamente",
+      user: {
+        id: targetUser.id,
+        firstName: targetUser.firstName,
+        lastName: targetUser.lastName,
+        email: targetUser.email,
+        role: targetUser.role,
+        isActive: targetUser.isActive,
+        createdAt: targetUser.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error al cambiar estado de la cuenta:", error);
+    return res
+      .status(500)
+      .json({ error: "Error al cambiar estado de la cuenta" });
+  }
+};
+
 const usersController = {
   getAll,
   create,
+  updateRole,
+  toggleStatus,
 };
 
 export default usersController;
