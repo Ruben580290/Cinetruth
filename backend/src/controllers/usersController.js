@@ -52,6 +52,7 @@ const create = async (req, res) => {
         lastName: savedUser.lastName,
         email: savedUser.email,
         role: savedUser.role,
+        isActive: savedUser.isActive,
         createdAt: savedUser.createdAt,
       },
     });
@@ -63,11 +64,7 @@ const create = async (req, res) => {
 
 /**
  * GET /api/users?search=&role=
- * Listado de usuarios registrados, solo para administradores
- * (protegido con authMiddleware + adminMiddleware en users routes).
- *
- * - search: coincide contra firstName, lastName o email (case-insensitive).
- * - role: "user" | "admin", filtro exacto.
+ * Listado de usuarios registrados, solo para administradores.
  */
 const getAll = async (req, res) => {
   try {
@@ -88,6 +85,7 @@ const getAll = async (req, res) => {
         "user.lastName",
         "user.email",
         "user.role",
+        "user.isActive",
         "user.createdAt",
       ])
       .orderBy("user.id", "ASC");
@@ -113,9 +111,111 @@ const getAll = async (req, res) => {
   }
 };
 
+/**
+ * PATCH /api/users/:id/role
+ * body: { role: "user" | "admin" }
+ * Cambia el rol de un usuario. Solo administradores (adminMiddleware).
+ */
+const updateRole = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { role } = req.body || {};
+
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({ error: "El id debe ser un entero valido" });
+    }
+
+    if (!role || !["user", "admin"].includes(role)) {
+      return res.status(400).json({
+        error: "El campo 'role' debe ser 'user' o 'admin'",
+      });
+    }
+
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const user = await userRepository.findOneBy({ id });
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    user.role = role;
+    const updated = await userRepository.save(user);
+
+    return res.json({
+      message: "Rol actualizado correctamente",
+      user: {
+        id: updated.id,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        email: updated.email,
+        role: updated.role,
+        isActive: updated.isActive,
+        createdAt: updated.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error al cambiar el rol:", error);
+    return res.status(500).json({ error: "Error al cambiar el rol" });
+  }
+};
+
+/**
+ * PATCH /api/users/:id/status
+ * Activa o desactiva la cuenta de un usuario. Solo administradores.
+ * Un admin no puede cambiar su propio estado.
+ */
+const toggleStatus = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { isActive } = req.body || {};
+
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({ error: "El id debe ser un entero valido" });
+    }
+
+    if (id === req.user.sub) {
+      return res.status(400).json({
+        error: "No puedes desactivar o cambiar el estado de tu propia cuenta.",
+      });
+    }
+
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const user = await userRepository.findOneBy({ id });
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Si se envía un valor booleano en el body se respeta, de lo contrario se invierte el valor actual
+    user.isActive = typeof isActive === "boolean" ? isActive : !user.isActive;
+
+    const updated = await userRepository.save(user);
+
+    return res.json({
+      message: `Cuenta ${updated.isActive ? "activada" : "desactivada"} correctamente`,
+      user: {
+        id: updated.id,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        email: updated.email,
+        role: updated.role,
+        isActive: updated.isActive,
+        createdAt: updated.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error al cambiar el estado del usuario:", error);
+    return res
+      .status(500)
+      .json({ error: "Error al cambiar el estado del usuario" });
+  }
+};
+
 const usersController = {
   getAll,
   create,
+  updateRole,
+  toggleStatus,
 };
 
 export default usersController;

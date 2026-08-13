@@ -1,16 +1,12 @@
 /**
  * Configuracion de prompts para Cine Truth.
  * Define las instrucciones de sistema y el esquema de respuesta que
-<<<<<<< Updated upstream
- * usamos para pedirle a OpenAI un analisis estructurado en JSON.
-=======
  * usamos para pedirle a OpenAI (gpt-4o-mini) un analisis estructurado en JSON.
  *
  * Migrado de Gemini a OpenAI. El texto de los prompts es el mismo que ya
  * funcionaba (no depende del proveedor), lo que cambia es el formato en el
  * que se le entrega el schema al modelo (ver OPENAI_JSON_SCHEMA_RESPONSE_FORMAT
  * al final de este archivo).
->>>>>>> Stashed changes
  */
 
 const TEXT_SYSTEM_INSTRUCTIONS = `
@@ -162,11 +158,7 @@ const RESPONSE_SCHEMA = {
     summary: {
       type: "string",
       description:
-<<<<<<< Updated upstream
         "Resumen final en 2-3 frases, coloquial, humano, divertido, exagerado y sarcastico, sin tecnicismos.",
-=======
-        "Resumen final en 2-3 frases, coloquial, humano, divertido y sin tecnicismos.",
->>>>>>> Stashed changes
     },
     recommendation: {
       type: "string",

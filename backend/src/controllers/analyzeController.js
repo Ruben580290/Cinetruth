@@ -2,20 +2,11 @@ import OpenAI from "openai";
 import {
   TEXT_SYSTEM_INSTRUCTIONS,
   IMAGE_SYSTEM_INSTRUCTIONS,
-<<<<<<< Updated upstream
-  RESPONSE_SCHEMA,
-=======
   SIMILAR_CASES_SYSTEM_INSTRUCTIONS,
   OPENAI_JSON_SCHEMA_RESPONSE_FORMAT,
->>>>>>> Stashed changes
 } from "../config/aiPromptConfig.js";
-import AppDataSource from "../config/database.js";
-import AnalysisSchema from "../models/AnalysisSchema.js";
+import { insertAnalysisQuery } from "../repositories/analysisQueryRepository.js";
 
-<<<<<<< Updated upstream
-let openaiClient = null;
-
-=======
 /**
  * ---------------------------------------------------------------------
  * INTERRUPTOR DE "CASOS SIMILARES"
@@ -37,7 +28,6 @@ const SIMILAR_CASES_ENABLED = false;
 
 let openaiClient = null;
 
->>>>>>> Stashed changes
 const getOpenAIClient = () => {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY no esta configurada en el .env");
@@ -48,14 +38,6 @@ const getOpenAIClient = () => {
   return openaiClient;
 };
 
-<<<<<<< Updated upstream
-const MODEL = () => process.env.OPENAI_MODEL || "gpt-4o-mini";
-
-/**
- * Reintenta una llamada a OpenAI cuando falla por un error temporal
- * (rafaga de peticiones, servidor ocupado). NO reintenta si el error
- * es por cuota agotada u otro error permanente.
-=======
 /** Modelo usado para el analisis principal (texto e imagen). */
 const MODEL = () => process.env.OPENAI_MODEL || "gpt-4o-mini";
 
@@ -71,7 +53,26 @@ const MAX_TEXT_LENGTH = 5000;
  * agrego backticks o texto extra a pesar de las instrucciones.
  * (Se usa solo para casos similares; el analisis principal ya viene
  * garantizado en JSON gracias a Structured Outputs).
->>>>>>> Stashed changes
+ */
+const extractJsonObject = (text) => {
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+};
+
+/**
+ * Reintenta una llamada a OpenAI cuando falla por un error temporal
+ * (rafaga de peticiones, servidor ocupado). NO reintenta si el error
+ * es por cuota agotada u otro error permanente.
  */
 const withRetry = async (fn, { retries = 3, baseDelayMs = 1500 } = {}) => {
   let lastError;
@@ -101,14 +102,6 @@ const withRetry = async (fn, { retries = 3, baseDelayMs = 1500 } = {}) => {
 };
 
 /**
-<<<<<<< Updated upstream
- * Guarda el analisis en el historial, asociado al usuario autenticado.
- * Si no hay usuario (peticion sin token), no guarda nada y no interrumpe
- * la respuesta del analisis.
- */
-const saveAnalysis = async (userId, type, result) => {
-  if (!userId) return;
-=======
  * Llama al modelo principal y devuelve el objeto ya parseado, validando
  * que no haya venido un "refusal" (rechazo del modelo) en su lugar.
  * @param {Array<object>} messages - mensajes estilo chat.completions
@@ -116,11 +109,13 @@ const saveAnalysis = async (userId, type, result) => {
 const runStructuredAnalysis = async (messages) => {
   const openai = getOpenAIClient();
 
-  const completion = await openai.chat.completions.create({
-    model: MODEL(),
-    messages,
-    response_format: OPENAI_JSON_SCHEMA_RESPONSE_FORMAT,
-  });
+  const completion = await withRetry(() =>
+    openai.chat.completions.create({
+      model: MODEL(),
+      messages,
+      response_format: OPENAI_JSON_SCHEMA_RESPONSE_FORMAT,
+    }),
+  );
 
   const choice = completion.choices?.[0];
   const message = choice?.message;
@@ -177,30 +172,37 @@ const findSimilarCases = async (caseBasis) => {
 };
 
 /**
- * Registra la consulta analizada en la tabla analysis_queries.
- * Se guarda SIEMPRE, con o sin usuario autenticado (userId puede ser null).
- * Si falla el guardado no se interrumpe la respuesta al usuario.
+ * Registra la consulta analizada en la tabla analysis_queries (la que
+ * lee /api/history). Se guarda SIEMPRE, con o sin usuario autenticado
+ * (userId puede ser null: consulta anonima). Si falla el guardado no se
+ * interrumpe la respuesta al usuario.
  *
  * @param {number|null} userId - id del usuario o null si es anonimo
- * @param {string} inputType - "text" o "image"
- * @param {object} inputInfo - datos de entrada (texto o archivo)
+ * @param {"text"|"image"} inputType
+ * @param {object} inputInfo - { inputText } para texto, o
+ *   { fileName, mimeType, fileSizeBytes } para imagen
  * @param {object} result - resultado completo devuelto al frontend
  */
 const saveAnalysisQuery = async (userId, inputType, inputInfo, result) => {
->>>>>>> Stashed changes
   try {
-    const analysisRepository = AppDataSource.getRepository(AnalysisSchema);
-    const analysis = analysisRepository.create({
-      type,
+    await insertAnalysisQuery({
+      userId: userId ?? null,
+      inputType,
+      inputText: inputInfo.inputText ?? null,
+      fileName: inputInfo.fileName ?? null,
+      mimeType: inputInfo.mimeType ?? null,
+      fileSizeBytes: inputInfo.fileSizeBytes ?? null,
       verdict: result.verdict,
       suspicionScore: result.suspicionScore,
+      semaphoreColor: result.semaphore?.color,
       summary: result.summary,
       resultData: result,
-      user: { id: userId },
     });
-    await analysisRepository.save(analysis);
   } catch (saveError) {
-    console.error("Error al guardar el analisis en el historial:", saveError);
+    console.error(
+      "Error al guardar la consulta en el historial (analysis_queries):",
+      saveError,
+    );
   }
 };
 
@@ -218,29 +220,12 @@ const analyzeText = async (req, res) => {
       });
     }
 
-    const openai = getOpenAIClient();
+    if (text.trim().length > MAX_TEXT_LENGTH) {
+      return res.status(400).json({
+        error: `El texto no puede superar los ${MAX_TEXT_LENGTH} caracteres.`,
+      });
+    }
 
-<<<<<<< Updated upstream
-    const completion = await withRetry(() =>
-      openai.chat.completions.create({
-        model: MODEL(),
-        messages: [
-          { role: "system", content: TEXT_SYSTEM_INSTRUCTIONS },
-          { role: "user", content: `Texto a analizar:\n"""${text.trim()}"""` },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "cine_truth_analysis",
-            strict: true,
-            schema: RESPONSE_SCHEMA,
-          },
-        },
-      }),
-    );
-
-    const result = JSON.parse(completion.choices[0].message.content);
-=======
     const result = await runStructuredAnalysis([
       { role: "system", content: TEXT_SYSTEM_INSTRUCTIONS },
       { role: "user", content: `Texto a analizar:\n"""${text.trim()}"""` },
@@ -256,15 +241,20 @@ const analyzeText = async (req, res) => {
         console.error("Error al buscar casos similares (texto):", similarError);
       }
     }
->>>>>>> Stashed changes
 
     const fullResult = {
       type: "text",
       input: text.trim(),
       ...result,
-      similarCases: [],
+      similarCases,
     };
-    await saveAnalysis(req.user?.sub, "text", fullResult);
+
+    await saveAnalysisQuery(
+      req.user?.sub ?? null,
+      "text",
+      { inputText: text.trim() },
+      fullResult,
+    );
 
     return res.json(fullResult);
   } catch (error) {
@@ -288,43 +278,6 @@ const analyzeImage = async (req, res) => {
       });
     }
 
-<<<<<<< Updated upstream
-    const openai = getOpenAIClient();
-    const base64Data = req.file.buffer.toString("base64");
-    const dataUrl = `data:${req.file.mimetype};base64,${base64Data}`;
-
-    const completion = await withRetry(() =>
-      openai.chat.completions.create({
-        model: MODEL(),
-        messages: [
-          { role: "system", content: IMAGE_SYSTEM_INSTRUCTIONS },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Analiza esta imagen en busca de señales tecnicas de manipulacion o generacion por IA.",
-              },
-              {
-                type: "image_url",
-                image_url: { url: dataUrl },
-              },
-            ],
-          },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "cine_truth_analysis",
-            strict: true,
-            schema: RESPONSE_SCHEMA,
-          },
-        },
-      }),
-    );
-
-    const result = JSON.parse(completion.choices[0].message.content);
-=======
     const base64Data = req.file.buffer.toString("base64");
     const dataUrl = `data:${req.file.mimetype};base64,${base64Data}`;
 
@@ -361,15 +314,24 @@ const analyzeImage = async (req, res) => {
         );
       }
     }
->>>>>>> Stashed changes
 
     const fullResult = {
       type: "image",
       fileName: req.file.originalname,
       ...result,
-      similarCases: [],
+      similarCases,
     };
-    await saveAnalysis(req.user?.sub, "image", fullResult);
+
+    await saveAnalysisQuery(
+      req.user?.sub ?? null,
+      "image",
+      {
+        fileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        fileSizeBytes: req.file.size,
+      },
+      fullResult,
+    );
 
     return res.json(fullResult);
   } catch (error) {

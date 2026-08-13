@@ -17,11 +17,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-<<<<<<< Updated upstream
-    "openai": "^4.77.0",
-=======
     "openai": "^7.4.0",
->>>>>>> Stashed changes
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

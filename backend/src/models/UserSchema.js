@@ -38,6 +38,12 @@ const UserSchema = new EntitySchema({
       default: "user",
     },
 
+    isActive: {
+      name: "isActive",
+      type: Boolean,
+      default: true,
+    },
+
     createdAt: {
       name: "createdAt",
       type: "timestamp",
@@ -53,4 +59,3 @@ const UserSchema = new EntitySchema({
 });
 
 export default UserSchema;
-

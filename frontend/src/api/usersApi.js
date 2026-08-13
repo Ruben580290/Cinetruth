@@ -25,3 +25,27 @@ export const getUsersRequest = (token, filters = {}) => {
     "No se pudo obtener el listado de usuarios.",
   );
 };
+
+export const updateUserRoleRequest = (token, userId, role) =>
+  request(
+    `/users/${userId}/role`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ role }),
+    },
+    "No se pudo cambiar el rol del usuario.",
+  );
+
+export const deactivateUserRequest = (token, userId) =>
+  request(
+    `/users/${userId}/deactivate`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+    "No se pudo desactivar la cuenta.",
+  );

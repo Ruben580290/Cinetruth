@@ -1,0 +1,39 @@
+# ADR 0002: Migración de Gemini a OpenAI
+
+## Fecha
+
+2026-08-12
+
+## Participantes
+
+- Gabriel Rivera
+- Rubén Verdesoto
+- David Hurtado
+
+## Contexto
+
+El proyecto usaba la API gratuita de Gemini, que tiene un límite bajo de
+peticiones diarias. Durante pruebas se agotó la cuota (error 429), lo que
+representaba un riesgo para las pruebas finales y la presentación en vivo.
+Activar el plan de pago de Gemini era una opción, pero se decidió migrar
+a OpenAI en su lugar.
+
+## Decisión
+
+- Se reemplaza `@google/genai` por el SDK oficial `openai`.
+- El modelo usado es `gpt-4o-mini`, elegido por su costo bajo, adecuado
+  para el crédito prepago de $5 USD activado.
+- La función de "casos similares" (búsqueda web en tiempo real, antes
+  hecha con Google Search grounding) queda **desactivada**. OpenAI no
+  tiene un equivalente directo y simple para esto en la integración
+  actual. El campo `similarCases` se sigue devolviendo, pero vacío.
+
+## Consecuencias
+
+- Se pierde la función de "casos similares" hasta que se decida
+  reimplementarla con otra herramienta.
+- El formato de respuesta (`verdict`, `suspicionScore`, `semaphore`,
+  `flags`, `summary`, `recommendation`) no cambia, así que el frontend
+  no necesita ningún ajuste.
+- El costo ahora es prepago por uso ($5 USD iniciales), en vez de un
+  límite gratuito diario.
