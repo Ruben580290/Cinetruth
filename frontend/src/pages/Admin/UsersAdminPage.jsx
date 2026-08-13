@@ -133,9 +133,7 @@ const UsersAdminPage = () => {
           </Card>
 
           {loading && (
-            <p className="text-center font-comic text-2xl">
-              Pasando lista...
-            </p>
+            <p className="text-center font-comic text-2xl">Pasando lista...</p>
           )}
 
           {!loading && error && (
@@ -194,9 +192,20 @@ const UsersAdminPage = () => {
             <>
               <p className={`${TEXT.micro} mb-3 text-ink/60`}>
                 {users.length}{" "}
-                {users.length === 1 ? "usuario encontrado" : "usuarios encontrados"}
+                {users.length === 1
+                  ? "usuario encontrado"
+                  : "usuarios encontrados"}
               </p>
-              <UsersTable users={users} />
+              <UsersTable
+                users={users}
+                onUserUpdated={(updatedUser) =>
+                  setUsers((prev) =>
+                    prev.map((u) =>
+                      u.id === updatedUser.id ? updatedUser : u,
+                    ),
+                  )
+                }
+              />
             </>
           )}
         </Container>
