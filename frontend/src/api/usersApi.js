@@ -37,19 +37,15 @@ export const updateUserRoleRequest = (token, userId, role) =>
       },
       body: JSON.stringify({ role }),
     },
-    "No se pudo actualizar el rol.",
+    "No se pudo cambiar el rol del usuario.",
   );
 
-export const toggleUserStatusRequest = (token, userId, isActive) =>
+export const deactivateUserRequest = (token, userId) =>
   request(
-    `/users/${userId}/status`,
+    `/users/${userId}/deactivate`,
     {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ isActive }),
+      headers: { Authorization: `Bearer ${token}` },
     },
-    "No se pudo actualizar el estado de la cuenta.",
+    "No se pudo desactivar la cuenta.",
   );

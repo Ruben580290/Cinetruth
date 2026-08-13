@@ -52,6 +52,7 @@ const create = async (req, res) => {
         lastName: savedUser.lastName,
         email: savedUser.email,
         role: savedUser.role,
+        isActive: savedUser.isActive,
         createdAt: savedUser.createdAt,
       },
     });
@@ -63,11 +64,7 @@ const create = async (req, res) => {
 
 /**
  * GET /api/users?search=&role=
- * Listado de usuarios registrados, solo para administradores
- * (protegido con authMiddleware + adminMiddleware en users routes).
- *
- * - search: coincide contra firstName, lastName o email (case-insensitive).
- * - role: "user" | "admin", filtro exacto.
+ * Listado de usuarios registrados, solo para administradores.
  */
 const getAll = async (req, res) => {
   try {
@@ -117,99 +114,100 @@ const getAll = async (req, res) => {
 /**
  * PATCH /api/users/:id/role
  * body: { role: "user" | "admin" }
- * Cambia el rol de un usuario. Solo administradores.
+ * Cambia el rol de un usuario. Solo administradores (adminMiddleware).
  */
 const updateRole = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
     const { role } = req.body || {};
 
-    if (!["user", "admin"].includes(role)) {
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({ error: "El id debe ser un entero valido" });
+    }
+
+    if (!role || !["user", "admin"].includes(role)) {
       return res.status(400).json({
-        error: "El campo role debe ser 'user' o 'admin'",
+        error: "El campo 'role' debe ser 'user' o 'admin'",
       });
     }
 
     const userRepository = AppDataSource.getRepository(UserSchema);
-    const targetUser = await userRepository.findOneBy({ id: Number(id) });
+    const user = await userRepository.findOneBy({ id });
 
-    if (!targetUser) {
+    if (!user) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    targetUser.role = role;
-    await userRepository.save(targetUser);
+    user.role = role;
+    const updated = await userRepository.save(user);
 
     return res.json({
       message: "Rol actualizado correctamente",
       user: {
-        id: targetUser.id,
-        firstName: targetUser.firstName,
-        lastName: targetUser.lastName,
-        email: targetUser.email,
-        role: targetUser.role,
-        isActive: targetUser.isActive,
-        createdAt: targetUser.createdAt,
+        id: updated.id,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        email: updated.email,
+        role: updated.role,
+        isActive: updated.isActive,
+        createdAt: updated.createdAt,
       },
     });
   } catch (error) {
-    console.error("Error al actualizar rol:", error);
-    return res.status(500).json({ error: "Error al actualizar rol" });
+    console.error("Error al cambiar el rol:", error);
+    return res.status(500).json({ error: "Error al cambiar el rol" });
   }
 };
 
 /**
  * PATCH /api/users/:id/status
- * body: { isActive: boolean }
- * Activa o desactiva una cuenta. Solo administradores.
- * Un admin no puede desactivarse a si mismo.
+ * Activa o desactiva la cuenta de un usuario. Solo administradores.
+ * Un admin no puede cambiar su propio estado.
  */
 const toggleStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
     const { isActive } = req.body || {};
 
-    if (typeof isActive !== "boolean") {
-      return res.status(400).json({
-        error: "El campo isActive debe ser true o false",
-      });
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({ error: "El id debe ser un entero valido" });
     }
 
-    if (Number(id) === req.user.sub && isActive === false) {
+    if (id === req.user.sub) {
       return res.status(400).json({
-        error: "No puedes desactivar tu propia cuenta",
+        error: "No puedes desactivar o cambiar el estado de tu propia cuenta.",
       });
     }
 
     const userRepository = AppDataSource.getRepository(UserSchema);
-    const targetUser = await userRepository.findOneBy({ id: Number(id) });
+    const user = await userRepository.findOneBy({ id });
 
-    if (!targetUser) {
+    if (!user) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    targetUser.isActive = isActive;
-    await userRepository.save(targetUser);
+    // Si se envía un valor booleano en el body se respeta, de lo contrario se invierte el valor actual
+    user.isActive = typeof isActive === "boolean" ? isActive : !user.isActive;
+
+    const updated = await userRepository.save(user);
 
     return res.json({
-      message: isActive
-        ? "Cuenta activada correctamente"
-        : "Cuenta desactivada correctamente",
+      message: `Cuenta ${updated.isActive ? "activada" : "desactivada"} correctamente`,
       user: {
-        id: targetUser.id,
-        firstName: targetUser.firstName,
-        lastName: targetUser.lastName,
-        email: targetUser.email,
-        role: targetUser.role,
-        isActive: targetUser.isActive,
-        createdAt: targetUser.createdAt,
+        id: updated.id,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        email: updated.email,
+        role: updated.role,
+        isActive: updated.isActive,
+        createdAt: updated.createdAt,
       },
     });
   } catch (error) {
-    console.error("Error al cambiar estado de la cuenta:", error);
+    console.error("Error al cambiar el estado del usuario:", error);
     return res
       .status(500)
-      .json({ error: "Error al cambiar estado de la cuenta" });
+      .json({ error: "Error al cambiar el estado del usuario" });
   }
 };
 

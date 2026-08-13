@@ -1,11 +1,10 @@
 import { useState } from "react";
-
-import { Badge, Button, TEXT, cx } from "../../ui";
+import { useAuth } from "../../auth/AuthContext";
 import {
   updateUserRoleRequest,
-  toggleUserStatusRequest,
+  deactivateUserRequest,
 } from "../../api/usersApi";
-import { useAuth } from "../../auth/AuthContext";
+import { Badge, Button, TEXT, cx } from "../../ui";
 
 const ROLE_STYLE = {
   admin: { tone: "hotpink", label: "👑 Admin" },
@@ -24,18 +23,19 @@ const formatDate = (isoDate) => {
   }
 };
 
-const UserRow = ({ user, onUserUpdated }) => {
-  const { token, user: currentUser } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
+const UserRow = ({ user, isSelf, canManage, onUserUpdated }) => {
+  const { token } = useAuth();
   const roleStyle = ROLE_STYLE[user.role] || ROLE_STYLE.user;
   const fullName = `${user.firstName} ${user.lastName}`.trim();
-  const isSelf = currentUser?.id === user.id;
+
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const handleRoleChange = async (event) => {
     const newRole = event.target.value;
-    setLoading(true);
+    if (newRole === user.role) return;
+
+    setBusy(true);
     setError("");
     try {
       const response = await updateUserRoleRequest(token, user.id, newRole);
@@ -43,51 +43,50 @@ const UserRow = ({ user, onUserUpdated }) => {
     } catch (requestError) {
       setError(requestError.message);
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
-  const handleToggleStatus = async () => {
-    setLoading(true);
+  const handleDeactivate = async () => {
+    if (!window.confirm(`¿Desactivar la cuenta de ${fullName}?`)) return;
+
+    setBusy(true);
     setError("");
     try {
-      const response = await toggleUserStatusRequest(
-        token,
-        user.id,
-        !user.isActive,
-      );
+      const response = await deactivateUserRequest(token, user.id);
       onUserUpdated(response.user);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
   return (
     <tr className="border-b-3 border-ink last:border-b-0">
-      <td className="px-4 py-3 font-semibold">
-        {fullName}
-        {isSelf && (
-          <span className={cx(TEXT.micro, "ml-2 text-ink/50")}>(tú)</span>
-        )}
-      </td>
+      <td className="px-4 py-3 font-semibold">{fullName}</td>
       <td className={cx("px-4 py-3", TEXT.body, "text-ink/80")}>
         {user.email}
       </td>
       <td className="px-4 py-3">
-        <select
-          value={user.role}
-          onChange={handleRoleChange}
-          disabled={loading}
-          className="border-3 border-ink px-2 py-1 font-mono text-xs"
-        >
-          <option value="user">🙂 Usuario</option>
-          <option value="admin">👑 Admin</option>
-        </select>
+        {canManage ? (
+          <select
+            value={user.role}
+            disabled={busy || isSelf}
+            onChange={handleRoleChange}
+            className="border-3 border-ink px-2 py-1 font-mono text-xs"
+          >
+            <option value="user">Usuario</option>
+            <option value="admin">Admin</option>
+          </select>
+        ) : (
+          <Badge tone={roleStyle.tone} size="xs">
+            {roleStyle.label}
+          </Badge>
+        )}
       </td>
       <td className="px-4 py-3">
-        <Badge tone={user.isActive ? "lime" : "hotpink"} size="xs">
+        <Badge tone={user.isActive ? "cyan" : "hotpink"} size="xs">
           {user.isActive ? "Activo" : "Desactivado"}
         </Badge>
       </td>
@@ -95,19 +94,19 @@ const UserRow = ({ user, onUserUpdated }) => {
         {formatDate(user.createdAt)}
       </td>
       <td className="px-4 py-3">
-        <Button
-          type="button"
-          variant={user.isActive ? "danger" : "success"}
-          size="sm"
-          onClick={handleToggleStatus}
-          disabled={loading || isSelf}
-          title={isSelf ? "No puedes desactivar tu propia cuenta" : ""}
-        >
-          {user.isActive ? "Desactivar" : "Activar"}
-        </Button>
-        {error && (
-          <p className={cx(TEXT.micro, "mt-1 text-hotpink")}>{error}</p>
+        {canManage && user.isActive && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={busy || isSelf}
+            title={isSelf ? "No puedes desactivar tu propia cuenta" : undefined}
+            onClick={handleDeactivate}
+          >
+            Desactivar
+          </Button>
         )}
+        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </td>
     </tr>
   );
