@@ -1,7 +1,16 @@
 /**
  * Configuracion de prompts para Cine Truth.
  * Define las instrucciones de sistema y el esquema de respuesta que
+<<<<<<< Updated upstream
  * usamos para pedirle a OpenAI un analisis estructurado en JSON.
+=======
+ * usamos para pedirle a OpenAI (gpt-4o-mini) un analisis estructurado en JSON.
+ *
+ * Migrado de Gemini a OpenAI. El texto de los prompts es el mismo que ya
+ * funcionaba (no depende del proveedor), lo que cambia es el formato en el
+ * que se le entrega el schema al modelo (ver OPENAI_JSON_SCHEMA_RESPONSE_FORMAT
+ * al final de este archivo).
+>>>>>>> Stashed changes
  */
 
 const TEXT_SYSTEM_INSTRUCTIONS = `
@@ -95,6 +104,14 @@ FORMATO DEL PUNTAJE (suspicionScore, 0 a 100):
 - 61-100: multiples indicios tipicos de imagenes generadas o alteradas.
 `.trim();
 
+/**
+ * Schema "puro" del resultado. Se usa tal cual para armar el
+ * response_format de OpenAI (ver OPENAI_JSON_SCHEMA_RESPONSE_FORMAT).
+ * OJO: OpenAI exige, para Structured Outputs en modo "strict", que TODOS
+ * los objetos tengan additionalProperties:false y que TODAS sus propiedades
+ * esten en "required" (ya estaba asi de antes con Gemini, no hubo que tocar
+ * la forma del schema).
+ */
 const RESPONSE_SCHEMA = {
   type: "object",
   properties: {
@@ -145,7 +162,11 @@ const RESPONSE_SCHEMA = {
     summary: {
       type: "string",
       description:
+<<<<<<< Updated upstream
         "Resumen final en 2-3 frases, coloquial, humano, divertido, exagerado y sarcastico, sin tecnicismos.",
+=======
+        "Resumen final en 2-3 frases, coloquial, humano, divertido y sin tecnicismos.",
+>>>>>>> Stashed changes
     },
     recommendation: {
       type: "string",
@@ -164,6 +185,29 @@ const RESPONSE_SCHEMA = {
   additionalProperties: false,
 };
 
+/**
+ * response_format listo para pasarle directo a
+ * openai.chat.completions.create({ ..., response_format: OPENAI_JSON_SCHEMA_RESPONSE_FORMAT })
+ * Con esto OpenAI garantiza que la respuesta cumple el schema al 100%
+ * (Structured Outputs, modo strict), asi no hay que andar "adivinando"
+ * si el modelo devolvio JSON valido.
+ */
+const OPENAI_JSON_SCHEMA_RESPONSE_FORMAT = {
+  type: "json_schema",
+  json_schema: {
+    name: "cine_truth_analysis",
+    strict: true,
+    schema: RESPONSE_SCHEMA,
+  },
+};
+
+/**
+ * ---------------------------------------------------------------------
+ * CASOS SIMILARES (actualmente DESACTIVADO, ver analyzeController.js ->
+ * SIMILAR_CASES_ENABLED). Se deja listo aqui para poder reactivarlo mas
+ * adelante sin tener que rehacer el prompt.
+ * ---------------------------------------------------------------------
+ */
 const SIMILAR_CASES_SYSTEM_INSTRUCTIONS = `
 Eres un investigador de campo para "Cine Truth", una herramienta educativa
 anti-desinformacion de farandula y espectaculo.
@@ -208,6 +252,7 @@ REGLAS:
 export {
   TEXT_SYSTEM_INSTRUCTIONS,
   IMAGE_SYSTEM_INSTRUCTIONS,
-  SIMILAR_CASES_SYSTEM_INSTRUCTIONS,
   RESPONSE_SCHEMA,
+  OPENAI_JSON_SCHEMA_RESPONSE_FORMAT,
+  SIMILAR_CASES_SYSTEM_INSTRUCTIONS,
 };
