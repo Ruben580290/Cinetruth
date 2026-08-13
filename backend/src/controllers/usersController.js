@@ -61,14 +61,52 @@ const create = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/users?search=&role=
+ * Listado de usuarios registrados, solo para administradores
+ * (protegido con authMiddleware + adminMiddleware en users routes).
+ *
+ * - search: coincide contra firstName, lastName o email (case-insensitive).
+ * - role: "user" | "admin", filtro exacto.
+ */
 const getAll = async (req, res) => {
   try {
+    const { search, role } = req.query || {};
+
+    if (role && !["user", "admin"].includes(role)) {
+      return res.status(400).json({
+        error: "El parametro role debe ser 'user' o 'admin'",
+      });
+    }
+
     const userRepository = AppDataSource.getRepository(UserSchema);
-    const users = await userRepository.find({
-      order: { id: "ASC" },
-      select: ["id", "firstName", "lastName", "email", "role", "createdAt"],
-    });
-    res.json(users);
+    const queryBuilder = userRepository
+      .createQueryBuilder("user")
+      .select([
+        "user.id",
+        "user.firstName",
+        "user.lastName",
+        "user.email",
+        "user.role",
+        "user.createdAt",
+      ])
+      .orderBy("user.id", "ASC");
+
+    if (search && search.trim()) {
+      const term = `%${search.trim()}%`;
+      queryBuilder.andWhere(
+        `(user.firstName ILIKE :term OR user.lastName ILIKE :term OR user.email ILIKE :term)`,
+        { term },
+      );
+    }
+
+    if (role) {
+      queryBuilder.andWhere("user.role = :role", { role });
+    }
+
+    const users = await queryBuilder.getMany();
+
+    res.json({ data: users, count: users.length });
   } catch (error) {
     console.error("Error al obtener usuarios:", error);
     res.status(500).json({ error: "Error al obtener usuarios" });

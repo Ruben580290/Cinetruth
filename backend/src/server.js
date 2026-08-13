@@ -6,6 +6,7 @@ import analyzeRouter from "./routes/analyzeRoutes.js";
 import logger from "./middleware/loggerMiddleware.js";
 import authRouter from "./routes/authRoutes.js";
 import historyRouter from "./routes/historyRoutes.js";
+import usersRouter from "./routes/usersRoutes.js";
 import AppDataSource from "./config/database.js";
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(logger);
 
 app.use("/api/auth", authRouter);
 app.use("/api/history", historyRouter);
+app.use("/api/users", usersRouter);
 
 const PORT = process.env.PORT || 5006;
 

@@ -6,7 +6,8 @@ import LoginPage from "../pages/Auth/LoginPage.jsx";
 import RegisterPage from "../pages/Auth/RegisterPage.jsx";
 import ProfilePage from "../pages/Auth/ProfilePage.jsx";
 import HistoryPage from "../pages/History/HistoryPage.jsx";
-import ProtectedRoute from "./protectedRoute.jsx";
+import UsersAdminPage from "../pages/Admin/UsersAdminPage.jsx";
+import ProtectedRoute, { RoleProtectedRoute } from "./protectedRoute.jsx";
 import routePaths from "./routePaths.js";
 
 const AppRoutes = () => (
@@ -20,6 +21,10 @@ const AppRoutes = () => (
         <Route element={<ProtectedRoute />}>
           <Route path={routePaths.profile} element={<ProfilePage />} />
           <Route path={routePaths.history} element={<HistoryPage />} />
+        </Route>
+
+        <Route element={<RoleProtectedRoute role="admin" />}>
+          <Route path={routePaths.adminUsers} element={<UsersAdminPage />} />
         </Route>
       </Routes>
     </AuthProvider>

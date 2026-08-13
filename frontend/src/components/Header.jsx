@@ -46,6 +46,9 @@ const Header = () => {
           {isAuthenticated ? (
             <>
               <Link to={routePaths.history}>Mi historial</Link>
+              {user?.role === "admin" && (
+                <Link to={routePaths.adminUsers}>🗂️ Usuarios</Link>
+              )}
               <Link to={routePaths.profile}>
                 👋 Hola, {user?.name?.split(" ")[0] || "reportero"}
               </Link>
