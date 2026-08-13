@@ -1,122 +1,78 @@
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 import {
   TEXT_SYSTEM_INSTRUCTIONS,
   IMAGE_SYSTEM_INSTRUCTIONS,
-  SIMILAR_CASES_SYSTEM_INSTRUCTIONS,
   RESPONSE_SCHEMA,
 } from "../config/aiPromptConfig.js";
-import { insertAnalysisQuery } from "../repositories/analysisQueryRepository.js";
+import AppDataSource from "../config/database.js";
+import AnalysisSchema from "../models/AnalysisSchema.js";
 
-let geminiClient = null;
+let openaiClient = null;
 
-const getGeminiClient = () => {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY no esta configurada en el .env");
+const getOpenAIClient = () => {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY no esta configurada en el .env");
   }
-  if (!geminiClient) {
-    geminiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  if (!openaiClient) {
+    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
-  return geminiClient;
+  return openaiClient;
 };
 
-const MODEL = () => process.env.GEMINI_MODEL || "gemini-3.5-flash";
-
-/** Mismo limite que el textarea del frontend y que el CHECK de la base. */
-const MAX_TEXT_LENGTH = 5000;
+const MODEL = () => process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 /**
- * Extrae el primer objeto JSON valido de un texto, por si el modelo
- * agrego backticks o texto extra a pesar de las instrucciones.
+ * Reintenta una llamada a OpenAI cuando falla por un error temporal
+ * (rafaga de peticiones, servidor ocupado). NO reintenta si el error
+ * es por cuota agotada u otro error permanente.
  */
-const extractJsonObject = (rawText) => {
-  const cleaned = (rawText || "").replace(/```json|```/g, "").trim();
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error("La respuesta de casos similares no trae JSON valido.");
+const withRetry = async (fn, { retries = 3, baseDelayMs = 1500 } = {}) => {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      const status = error?.status;
+      const isRetryable = status === 429 || status === 503 || status === 500;
+
+      if (!isRetryable || attempt === retries) {
+        throw error;
+      }
+
+      const delay = baseDelayMs * 2 ** attempt;
+      console.warn(
+        `OpenAI fallo (intento ${attempt + 1}/${retries + 1}), reintentando en ${delay}ms...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
   }
-  return JSON.parse(cleaned.slice(start, end + 1));
-};
 
-/**
- * Busca en internet, via Google Search grounding, casos parecidos al
- * analisis principal (mismo patron de rumor/imagen fabricada con IA).
- * No debe romper el analisis principal si falla: siempre se llama
- * dentro de un try/catch en analyzeText/analyzeImage.
- *
- * @param {string} caseBasis - resumen en texto plano del caso ya analizado
- */
-const findSimilarCases = async (caseBasis) => {
-  const gemini = getGeminiClient();
-
-  const response = await gemini.models.generateContent({
-    model: MODEL(),
-    contents: `Caso ya analizado por Cine Truth:\n"""${caseBasis}"""\n\nBusca casos parecidos en internet siguiendo tus instrucciones.`,
-    config: {
-      systemInstruction: SIMILAR_CASES_SYSTEM_INSTRUCTIONS,
-      tools: [{ googleSearch: {} }],
-    },
-  });
-
-  const parsed = extractJsonObject(response.text);
-  const rawCases = Array.isArray(parsed?.cases) ? parsed.cases : [];
-
-  // Fuentes reales que Google Search efectivamente uso para fundamentar
-  // la respuesta (grounding). Sirven para rellenar/verificar URLs.
-  const groundedSources = (
-    response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
-  )
-    .map((chunk) => chunk?.web)
-    .filter((web) => web?.uri);
-
-  const cases = rawCases
-    .filter((item) => item && item.title && item.sourceUrl)
-    .slice(0, 4)
-    .map((item) => ({
-      title: String(item.title).trim(),
-      sourceName: item.sourceName
-        ? String(item.sourceName).trim()
-        : "Fuente web",
-      sourceUrl: String(item.sourceUrl).trim(),
-      likelyFake: ["SI", "PROBABLE", "INCIERTO"].includes(item.likelyFake)
-        ? item.likelyFake
-        : "INCIERTO",
-      whyRelevant: item.whyRelevant ? String(item.whyRelevant).trim() : "",
-    }));
-
-  return { cases, groundedSources };
+  throw lastError;
 };
 
 /**
- * Registra la consulta analizada en la tabla analysis_queries.
- * Se guarda SIEMPRE, con o sin usuario autenticado (userId puede ser null).
- * Si falla el guardado no se interrumpe la respuesta al usuario.
- *
- * @param {number|null} userId - id del usuario o null si es anonimo
- * @param {string} inputType - "text" o "image"
- * @param {object} inputInfo - datos de entrada (texto o archivo)
- * @param {object} result - resultado completo devuelto al frontend
+ * Guarda el analisis en el historial, asociado al usuario autenticado.
+ * Si no hay usuario (peticion sin token), no guarda nada y no interrumpe
+ * la respuesta del analisis.
  */
-const saveAnalysisQuery = async (userId, inputType, inputInfo, result) => {
+const saveAnalysis = async (userId, type, result) => {
+  if (!userId) return;
   try {
-    await insertAnalysisQuery({
-      userId: userId || null,
-      inputType,
-      inputText: inputInfo.inputText || null,
-      fileName: inputInfo.fileName || null,
-      mimeType: inputInfo.mimeType || null,
-      fileSizeBytes: inputInfo.fileSizeBytes || null,
+    const analysisRepository = AppDataSource.getRepository(AnalysisSchema);
+    const analysis = analysisRepository.create({
+      type,
       verdict: result.verdict,
       suspicionScore: result.suspicionScore,
-      semaphoreColor: result.semaphore ? result.semaphore.color : null,
       summary: result.summary,
       resultData: result,
+      user: { id: userId },
     });
+    await analysisRepository.save(analysis);
   } catch (saveError) {
-    console.error(
-      "Error al registrar la consulta analizada:",
-      saveError.message,
-    );
+    console.error("Error al guardar el analisis en el historial:", saveError);
   }
 };
 
@@ -134,47 +90,35 @@ const analyzeText = async (req, res) => {
       });
     }
 
-    if (text.trim().length > MAX_TEXT_LENGTH) {
-      return res.status(400).json({
-        error: `El texto no puede superar los ${MAX_TEXT_LENGTH} caracteres.`,
-      });
-    }
+    const openai = getOpenAIClient();
 
-    const gemini = getGeminiClient();
+    const completion = await withRetry(() =>
+      openai.chat.completions.create({
+        model: MODEL(),
+        messages: [
+          { role: "system", content: TEXT_SYSTEM_INSTRUCTIONS },
+          { role: "user", content: `Texto a analizar:\n"""${text.trim()}"""` },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "cine_truth_analysis",
+            strict: true,
+            schema: RESPONSE_SCHEMA,
+          },
+        },
+      }),
+    );
 
-    const response = await gemini.models.generateContent({
-      model: MODEL(),
-      contents: `Texto a analizar:\n"""${text.trim()}"""`,
-      config: {
-        systemInstruction: TEXT_SYSTEM_INSTRUCTIONS,
-        responseMimeType: "application/json",
-        responseJsonSchema: RESPONSE_SCHEMA,
-      },
-    });
-
-    const result = JSON.parse(response.text);
-
-    let similarCases = [];
-    try {
-      const caseBasis = `Texto original: "${text.trim()}"\nVeredicto: ${result.verdict}\nResumen: ${result.summary}`;
-      const similar = await findSimilarCases(caseBasis);
-      similarCases = similar.cases;
-    } catch (similarError) {
-      console.error("Error al buscar casos similares (texto):", similarError);
-    }
+    const result = JSON.parse(completion.choices[0].message.content);
 
     const fullResult = {
       type: "text",
       input: text.trim(),
       ...result,
-      similarCases,
+      similarCases: [],
     };
-    await saveAnalysisQuery(
-      req.user?.sub,
-      "text",
-      { inputText: text.trim() },
-      fullResult,
-    );
+    await saveAnalysis(req.user?.sub, "text", fullResult);
 
     return res.json(fullResult);
   } catch (error) {
@@ -198,64 +142,49 @@ const analyzeImage = async (req, res) => {
       });
     }
 
-    const gemini = getGeminiClient();
+    const openai = getOpenAIClient();
     const base64Data = req.file.buffer.toString("base64");
+    const dataUrl = `data:${req.file.mimetype};base64,${base64Data}`;
 
-    const response = await gemini.models.generateContent({
-      model: MODEL(),
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: "Analiza esta imagen en busca de senales tecnicas de manipulacion o generacion por IA.",
-            },
-            {
-              inlineData: {
-                mimeType: req.file.mimetype,
-                data: base64Data,
+    const completion = await withRetry(() =>
+      openai.chat.completions.create({
+        model: MODEL(),
+        messages: [
+          { role: "system", content: IMAGE_SYSTEM_INSTRUCTIONS },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Analiza esta imagen en busca de señales tecnicas de manipulacion o generacion por IA.",
               },
-            },
-          ],
+              {
+                type: "image_url",
+                image_url: { url: dataUrl },
+              },
+            ],
+          },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "cine_truth_analysis",
+            strict: true,
+            schema: RESPONSE_SCHEMA,
+          },
         },
-      ],
-      config: {
-        systemInstruction: IMAGE_SYSTEM_INSTRUCTIONS,
-        responseMimeType: "application/json",
-        responseJsonSchema: RESPONSE_SCHEMA,
-      },
-    });
+      }),
+    );
 
-    const result = JSON.parse(response.text);
-
-    let similarCases = [];
-    try {
-      const flagsText = Array.isArray(result.flags)
-        ? result.flags.map((f) => `${f.label}: ${f.detail}`).join("; ")
-        : "";
-      const caseBasis = `Analisis de imagen de farandula.\nVeredicto: ${result.verdict}\nResumen: ${result.summary}\nSenales detectadas: ${flagsText}`;
-      const similar = await findSimilarCases(caseBasis);
-      similarCases = similar.cases;
-    } catch (similarError) {
-      console.error("Error al buscar casos similares (imagen):", similarError);
-    }
+    const result = JSON.parse(completion.choices[0].message.content);
 
     const fullResult = {
       type: "image",
       fileName: req.file.originalname,
       ...result,
-      similarCases,
+      similarCases: [],
     };
-    await saveAnalysisQuery(
-      req.user?.sub,
-      "image",
-      {
-        fileName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        fileSizeBytes: req.file.size,
-      },
-      fullResult,
-    );
+    await saveAnalysis(req.user?.sub, "image", fullResult);
 
     return res.json(fullResult);
   } catch (error) {
