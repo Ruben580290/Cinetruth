@@ -53,3 +53,17 @@ export const deactivateUserRequest = (token, userId) =>
     },
     "No se pudo desactivar la cuenta.",
   );
+
+export const activateUserRequest = (token, userId) =>
+  request(
+    `/users/${userId}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ isActive: true }),
+    },
+    "No se pudo activar la cuenta.",
+  );

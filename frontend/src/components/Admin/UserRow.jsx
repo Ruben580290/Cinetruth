@@ -3,6 +3,7 @@ import { useAuth } from "../../auth/AuthContext";
 import {
   updateUserRoleRequest,
   deactivateUserRequest,
+  activateUserRequest,
 } from "../../api/usersApi";
 import { Badge, Button, TEXT, cx } from "../../ui";
 
@@ -62,6 +63,19 @@ const UserRow = ({ user, isSelf, canManage, onUserUpdated }) => {
     }
   };
 
+  const handleActivate = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await activateUserRequest(token, user.id);
+      onUserUpdated(response.user);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <tr className="border-b-3 border-ink last:border-b-0">
       <td className="px-4 py-3 font-semibold">{fullName}</td>
@@ -104,6 +118,18 @@ const UserRow = ({ user, isSelf, canManage, onUserUpdated }) => {
             onClick={handleDeactivate}
           >
             Desactivar
+          </Button>
+        )}
+        {canManage && !user.isActive && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={busy || isSelf}
+            title={isSelf ? "No puedes cambiar tu propia cuenta" : undefined}
+            onClick={handleActivate}
+          >
+            Activar
           </Button>
         )}
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
