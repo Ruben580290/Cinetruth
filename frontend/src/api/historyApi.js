@@ -31,3 +31,44 @@ export const getHistoryRequest = (token, filters = {}) => {
     "No se pudo obtener el historial.",
   );
 };
+
+/**
+ * Elimina un analisis del historial del usuario autenticado.
+ * @param {string} token
+ * @param {number} id
+ */
+export const deleteHistoryItemRequest = (token, id) =>
+  request(
+    `/history/${id}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+    "No se pudo eliminar la consulta.",
+  );
+
+/**
+ * Marca o desmarca un caso similar como revisado.
+ * @param {string} token
+ * @param {number} id - id del registro de historial
+ * @param {number} caseIndex - indice del caso dentro de resultData.similarCases
+ * @param {boolean} reviewed
+ */
+export const toggleSimilarCaseReviewRequest = (
+  token,
+  id,
+  caseIndex,
+  reviewed,
+) =>
+  request(
+    `/history/${id}/similar-cases/${caseIndex}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ reviewed }),
+    },
+    "No se pudo actualizar el caso similar.",
+  );

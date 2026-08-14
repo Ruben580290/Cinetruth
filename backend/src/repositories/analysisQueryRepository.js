@@ -23,6 +23,7 @@ const SELECT_COLUMNS = `
   q."resultData",
   q."reviewStatus",
   q."reviewNote",
+  q."reviewedSimilarCases",
   q."createdAt",
   q."updatedAt"
 `;
@@ -187,10 +188,62 @@ const updateAnalysisQueryReview = async (id, reviewStatus, reviewNote) => {
   return rows[0] || null;
 };
 
+/**
+ * Elimina un analisis del historial. Solo borra si el registro
+ * pertenece al usuario indicado (la comparacion de dueño va en el WHERE,
+ * ademas de la validacion previa en el controlador).
+ */
+const deleteAnalysisQuery = async (id, userId) => {
+  const sql = `
+    DELETE FROM analysis_queries
+    WHERE id = $1 AND "userId" = $2
+    RETURNING id;
+  `;
+
+  const rows = await AppDataSource.query(sql, [id, userId]);
+  return rows[0] || null;
+};
+
+/**
+ * Marca o desmarca un caso similar (por su indice dentro de
+ * resultData.similarCases) como revisado. Solo actua si el registro
+ * pertenece al usuario indicado. Es atomico: no hay lectura+escritura
+ * separadas, todo pasa en un solo UPDATE.
+ */
+const updateSimilarCaseReview = async (id, userId, caseIndex, reviewed) => {
+  const sql = reviewed
+    ? `
+      UPDATE analysis_queries
+      SET "reviewedSimilarCases" = (
+        SELECT jsonb_agg(DISTINCT elem)
+        FROM jsonb_array_elements(
+          "reviewedSimilarCases" || to_jsonb($3::int)
+        ) AS elem
+      )
+      WHERE id = $1 AND "userId" = $2
+      RETURNING id, "reviewedSimilarCases";
+    `
+    : `
+      UPDATE analysis_queries
+      SET "reviewedSimilarCases" = (
+        SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+        FROM jsonb_array_elements("reviewedSimilarCases") AS elem
+        WHERE elem <> to_jsonb($3::int)
+      )
+      WHERE id = $1 AND "userId" = $2
+      RETURNING id, "reviewedSimilarCases";
+    `;
+
+  const rows = await AppDataSource.query(sql, [id, userId, caseIndex]);
+  return rows[0] || null;
+};
+
 export {
   insertAnalysisQuery,
   findAnalysisQueries,
   countAnalysisQueries,
   findAnalysisQueryById,
   updateAnalysisQueryReview,
+  deleteAnalysisQuery,
+  updateSimilarCaseReview,
 };
