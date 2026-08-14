@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 
 import { useAuth } from "../../auth/AuthContext";
-import { getHistoryRequest } from "../../api/historyApi";
+import {
+  getHistoryRequest,
+  deleteHistoryItemRequest,
+  toggleSimilarCaseReviewRequest,
+} from "../../api/historyApi";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import HistoryItem from "../../components/History/HistoryItem";
@@ -60,6 +64,39 @@ const HistoryPage = () => {
     setTo("");
     setVerdict("");
     loadHistory({});
+  };
+
+  /**
+   * Elimina un analisis. Si el backend confirma el borrado, quitamos el
+   * item del estado local -> la vista se actualiza sin recargar la pagina.
+   */
+  const handleDeleteItem = async (id) => {
+    await deleteHistoryItemRequest(token, id);
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  /**
+   * Marca/desmarca un caso similar. Actualizamos solo ese item en el
+   * estado local con la lista de indices que devuelve el backend.
+   */
+  const handleToggleSimilarCase = async (id, caseIndex, reviewed) => {
+    const response = await toggleSimilarCaseReviewRequest(
+      token,
+      id,
+      caseIndex,
+      reviewed,
+    );
+
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              reviewedSimilarCases: response.data.reviewedSimilarCases,
+            }
+          : item,
+      ),
+    );
   };
 
   const filtersApplied = Boolean(from || to || verdict);
@@ -194,7 +231,12 @@ const HistoryPage = () => {
           {!loading && !error && items.length > 0 && (
             <ul className="flex flex-col gap-4">
               {items.map((item) => (
-                <HistoryItem key={item.id} item={item} />
+                <HistoryItem
+                  key={item.id}
+                  item={item}
+                  onDelete={handleDeleteItem}
+                  onToggleSimilarCase={handleToggleSimilarCase}
+                />
               ))}
             </ul>
           )}

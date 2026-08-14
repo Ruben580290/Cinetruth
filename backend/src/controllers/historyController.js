@@ -3,6 +3,8 @@ import {
   countAnalysisQueries,
   findAnalysisQueryById,
   updateAnalysisQueryReview,
+  deleteAnalysisQuery,
+  updateSimilarCaseReview,
 } from "../repositories/analysisQueryRepository.js";
 
 const VALID_VERDICTS = ["VERIFICADO", "SOSPECHOSO", "FABRICADO"];
@@ -214,4 +216,135 @@ const updateHistoryReview = async (req, res) => {
   }
 };
 
-export { getHistory, getAllHistory, getHistoryById, updateHistoryReview };
+/**
+ * DELETE /api/history/:id
+ * Elimina un analisis del historial del usuario autenticado.
+ * Un usuario solo puede borrar sus propios registros (no los de otros).
+ */
+const deleteHistoryItem = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+      return res
+        .status(400)
+        .json({ error: "El id debe ser un numero entero valido." });
+    }
+
+    const record = await findAnalysisQueryById(id);
+    if (!record) {
+      return res
+        .status(404)
+        .json({ error: "No existe esa consulta en el historial." });
+    }
+
+    if (record.userId !== req.user.sub) {
+      return res
+        .status(403)
+        .json({ error: "No tienes permiso para eliminar esta consulta." });
+    }
+
+    const deleted = await deleteAnalysisQuery(id, req.user.sub);
+    if (!deleted) {
+      return res
+        .status(404)
+        .json({ error: "No existe esa consulta en el historial." });
+    }
+
+    return res.json({
+      message: "Registro eliminado del historial.",
+      data: { id: deleted.id },
+    });
+  } catch (error) {
+    console.error("Error al eliminar la consulta:", error);
+    return res.status(500).json({
+      error: "No se pudo eliminar la consulta.",
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * PATCH /api/history/:id/similar-cases/:caseIndex
+ * Marca o desmarca un caso similar como revisado.
+ * body: { reviewed: boolean }
+ * Un usuario solo puede modificar registros de su propio historial.
+ */
+const toggleSimilarCaseReview = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+      return res
+        .status(400)
+        .json({ error: "El id debe ser un numero entero valido." });
+    }
+
+    const caseIndex = Number(req.params.caseIndex);
+    if (!Number.isInteger(caseIndex) || caseIndex < 0) {
+      return res
+        .status(400)
+        .json({ error: "El indice del caso similar no es valido." });
+    }
+
+    const { reviewed } = req.body || {};
+    if (typeof reviewed !== "boolean") {
+      return res.status(400).json({
+        error: "El campo 'reviewed' es obligatorio y debe ser booleano.",
+      });
+    }
+
+    const record = await findAnalysisQueryById(id);
+    if (!record) {
+      return res
+        .status(404)
+        .json({ error: "No existe esa consulta en el historial." });
+    }
+
+    if (record.userId !== req.user.sub) {
+      return res
+        .status(403)
+        .json({ error: "No tienes permiso para modificar esta consulta." });
+    }
+
+    const similarCases = record.resultData?.similarCases;
+    if (!Array.isArray(similarCases) || caseIndex >= similarCases.length) {
+      return res
+        .status(404)
+        .json({ error: "Ese caso similar no existe en esta consulta." });
+    }
+
+    const updated = await updateSimilarCaseReview(
+      id,
+      req.user.sub,
+      caseIndex,
+      reviewed,
+    );
+
+    if (!updated) {
+      return res
+        .status(404)
+        .json({ error: "No existe esa consulta en el historial." });
+    }
+
+    return res.json({
+      message: reviewed
+        ? "Caso similar marcado como revisado."
+        : "Caso similar desmarcado.",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Error al actualizar el caso similar:", error);
+    return res.status(500).json({
+      error: "No se pudo actualizar el caso similar.",
+      details: error.message,
+    });
+  }
+};
+
+export {
+  getHistory,
+  getAllHistory,
+  getHistoryById,
+  updateHistoryReview,
+  deleteHistoryItem,
+  toggleSimilarCaseReview,
+};
