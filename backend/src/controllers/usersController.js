@@ -1,6 +1,7 @@
 import AppDataSource from "../config/database.js";
 import bcrypt from "bcryptjs";
 import UserSchema from "../models/UserSchema.js";
+import { runWithAuditUser } from "../utils/auditContext.js";
 
 const create = async (req, res) => {
   try {
@@ -115,6 +116,8 @@ const getAll = async (req, res) => {
  * PATCH /api/users/:id/role
  * body: { role: "user" | "admin" }
  * Cambia el rol de un usuario. Solo administradores (adminMiddleware).
+ * Queda registrado en audit_log (entityName "roles") con el admin
+ * responsable, via runWithAuditUser.
  */
 const updateRole = async (req, res) => {
   try {
@@ -131,15 +134,19 @@ const updateRole = async (req, res) => {
       });
     }
 
-    const userRepository = AppDataSource.getRepository(UserSchema);
-    const user = await userRepository.findOneBy({ id });
+    const updated = await runWithAuditUser(req.user, async (manager) => {
+      const userRepository = manager.getRepository(UserSchema);
+      const user = await userRepository.findOneBy({ id });
 
-    if (!user) {
+      if (!user) return null;
+
+      user.role = role;
+      return userRepository.save(user);
+    });
+
+    if (!updated) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
-
-    user.role = role;
-    const updated = await userRepository.save(user);
 
     return res.json({
       message: "Rol actualizado correctamente",
@@ -163,6 +170,8 @@ const updateRole = async (req, res) => {
  * PATCH /api/users/:id/status
  * Activa o desactiva la cuenta de un usuario. Solo administradores.
  * Un admin no puede cambiar su propio estado.
+ * Queda registrado en audit_log (entityName "usuarios") con el admin
+ * responsable, via runWithAuditUser.
  */
 const toggleStatus = async (req, res) => {
   try {
@@ -179,17 +188,20 @@ const toggleStatus = async (req, res) => {
       });
     }
 
-    const userRepository = AppDataSource.getRepository(UserSchema);
-    const user = await userRepository.findOneBy({ id });
+    const updated = await runWithAuditUser(req.user, async (manager) => {
+      const userRepository = manager.getRepository(UserSchema);
+      const user = await userRepository.findOneBy({ id });
 
-    if (!user) {
+      if (!user) return null;
+
+      // Si se envía un valor booleano en el body se respeta, de lo contrario se invierte el valor actual
+      user.isActive = typeof isActive === "boolean" ? isActive : !user.isActive;
+      return userRepository.save(user);
+    });
+
+    if (!updated) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
-
-    // Si se envía un valor booleano en el body se respeta, de lo contrario se invierte el valor actual
-    user.isActive = typeof isActive === "boolean" ? isActive : !user.isActive;
-
-    const updated = await userRepository.save(user);
 
     return res.json({
       message: `Cuenta ${updated.isActive ? "activada" : "desactivada"} correctamente`,

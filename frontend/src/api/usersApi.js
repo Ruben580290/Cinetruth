@@ -42,10 +42,14 @@ export const updateUserRoleRequest = (token, userId, role) =>
 
 export const deactivateUserRequest = (token, userId) =>
   request(
-    `/users/${userId}/deactivate`,
+    `/users/${userId}/status`,
     {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ isActive: false }),
     },
     "No se pudo desactivar la cuenta.",
   );

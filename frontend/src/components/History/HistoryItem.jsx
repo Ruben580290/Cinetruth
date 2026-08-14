@@ -102,7 +102,7 @@ const HistoryItem = ({ item, onDelete, onToggleSimilarCase }) => {
       <p className="mt-4 font-semibold leading-relaxed">{item.summary}</p>
 
       <Badge tone="violet" size="xs" className="mt-4">
-        {item.type === "image"
+        {item.inputType === "image"
           ? "📷 Análisis de imagen"
           : "📰 Análisis de texto"}
       </Badge>
